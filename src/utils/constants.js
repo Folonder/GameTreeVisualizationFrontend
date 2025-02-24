@@ -1,0 +1,5 @@
+export const TREE_CONSTANTS = {
+    NODE_RADIUS: 5,
+    NODE_PADDING: 20,
+    ANIMATION_DURATION: 300
+};
