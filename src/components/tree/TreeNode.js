@@ -14,6 +14,8 @@ const getNodeStyle = (nodeState, data) => {
             return { ...baseStyle, stroke: TREE_CONSTANTS.COLORS.NODE_HIDDEN };
         case 'limited':
             return { ...baseStyle, stroke: TREE_CONSTANTS.COLORS.NODE_LIMITED };
+        case TREE_CONSTANTS.NODE_STATES.HAS_HIDDEN_CHILDREN:
+            return { ...baseStyle, stroke: TREE_CONSTANTS.COLORS.STROKE.HAS_HIDDEN, strokeWidth: 2.5 };
         default:
             return { ...baseStyle, stroke: TREE_CONSTANTS.COLORS.NODE_NORMAL };
     }
@@ -30,6 +32,9 @@ const TreeNode = ({
     const style = getNodeStyle(nodeState, data);
     const visits = data.statistics?.numVisits || 0;
     
+    // Проверяем, скрыты ли дети узла
+    const hasHiddenChildren = nodeState === TREE_CONSTANTS.NODE_STATES.HAS_HIDDEN_CHILDREN;
+    
     return (
         <g className="node">
             <circle
@@ -39,7 +44,7 @@ const TreeNode = ({
                     fill: d3.interpolateBlues(Math.min(0.1 + visits / 1000, 0.9))
                 }}
                 onContextMenu={(e) => onContextMenu(e, node)}
-                onClick={(e) => nodeState !== 'visible' && onShowChildren(e, node)}
+                onClick={(e) => hasHiddenChildren && onShowChildren(e, node)}
                 ref={node => node && setupNodeDrag(node)}
             />
             
@@ -54,7 +59,7 @@ const TreeNode = ({
                 {Math.round(data.statistics?.relativeVisits || 0)}%
             </text>
 
-            {nodeState !== 'visible' && (
+            {hasHiddenChildren && (
                 <text
                     dx={-3}
                     dy={4}

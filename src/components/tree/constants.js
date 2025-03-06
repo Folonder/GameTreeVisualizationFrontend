@@ -1,30 +1,82 @@
-// components/tree/constants.js
+// src/components/tree/constants.js
 export const TREE_CONSTANTS = {
-    MAX_VISIBLE_NODES: 100,
-    DIMENSIONS: {
-        WIDTH: 1500,
-        HEIGHT: 1500,
-        MARGIN: 50,
-        PADDING: 200
+    // Состояния узлов
+    NODE_STATES: {
+        VISIBLE: 'visible',           // Обычный видимый узел
+        EXPANDED: 'expanded',         // Узел, все дети которого показаны
+        HAS_HIDDEN_CHILDREN: 'has_hidden_children',  // Узел со скрытыми детьми
+        PARENT_HIDDEN: 'parent_hidden',  // Узел скрыт, т.к. скрыт родитель
+        DEPTH_LIMITED: 'depth_limited',  // Узел скрыт из-за ограничения глубины
+        FILTERED: 'filtered'          // Узел скрыт из-за фильтров
     },
+
+    // Цвета
     COLORS: {
         STROKE: {
-            NORMAL: '#2c5282',
-            HAS_HIDDEN: '#ef4444',     // Узел, дети которого скрыты
-            DEPTH_LIMITED: '#eab308'   // Узел скрыт из-за ограничения глубины
+            NORMAL: '#2c5282',        // Синий для обычных узлов
+            EXPANDED: '#047857',      // Зеленый для раскрытых узлов
+            HAS_HIDDEN: '#dc2626',    // Красный для узлов со скрытыми детьми
+            DEPTH_LIMITED: '#f59e0b', // Желтый для ограниченных по глубине
+            FILTERED: '#7c3aed'       // Фиолетовый для отфильтрованных
         },
-        LINK: '#cbd5e0'
+        FILL: {
+            BASE: '#ffffff',          // Базовый цвет заливки
+            HIGHLIGHT: '#f8fafc'      // Цвет при наведении
+        },
+        TEXT: {
+            PRIMARY: '#1e293b',       // Основной цвет текста
+            SECONDARY: '#1a365d',     // Более темный цвет для текста процентов (было: #64748b)
+            ACCENT: '#3b82f6'         // Акцентный цвет текста
+        },
+        LINK: '#cbd5e0',              // Цвет связей
+        NODE_NORMAL: '#3b82f6',       // Синий для обычных узлов
+        NODE_HIDDEN: '#ef4444',       // Красный для узлов со скрытыми детьми
+        NODE_LIMITED: '#f59e0b'       // Желтый для ограниченных узлов
     },
-    NODE_STATES: {
-        VISIBLE: 'visible',
-        HAS_HIDDEN_CHILDREN: 'has_hidden_children',
-        PARENT_HIDDEN: 'parent_hidden',
-        DEPTH_LIMITED: 'depth_limited'
+
+    // Размеры и отступы
+    DIMENSIONS: {
+        WIDTH: 2000,                  // Ширина SVG (было: 1500)
+        HEIGHT: 2500,                 // Высота SVG (было: 1500)
+        MARGIN: 50,                   // Внешний отступ
+        PADDING: 250,                 // Внутренний отступ (было: 200)
+        NODE: {
+            MIN_RADIUS: 5,            // Минимальный радиус узла
+            MAX_RADIUS: 20,           // Максимальный радиус узла
+            TEXT_OFFSET: 16           // Было: 12 - Увеличиваем отступ для текста
+        }
     },
+
+    // Стили линий и границ
     STYLE: {
         STROKE_WIDTH: {
-            NORMAL: 1.5,
-            HAS_HIDDEN: 2.5
+            NORMAL: 1.5,              // Обычная толщина границы
+            HIGHLIGHTED: 2.5,         // Толщина при выделении
+            LINK: 1                   // Толщина линий связей
+        },
+        LINK_OPACITY: 0.4,           // Прозрачность линий связей
+        NODE_OPACITY: {
+            NORMAL: 1,                // Обычная прозрачность узла
+            DIMMED: 0.7              // Приглушенная прозрачность
         }
+    },
+
+    // Настройки макета
+    LAYOUT: {
+        SEPARATION: {
+            SIBLINGS: 3,              // Расстояние между родственными узлами (было: 2)
+            NON_SIBLINGS: 4.5         // Расстояние между неродственными узлами (было: 3)
+        },
+        ZOOM: {
+            MIN: 0.1,                 // Минимальный масштаб
+            MAX: 4,                   // Максимальный масштаб
+            DEFAULT: 0.6              // Масштаб по умолчанию (было: 1)
+        }
+    },
+
+    // Анимации
+    ANIMATION: {
+        DURATION: 300,               // Длительность анимации в мс
+        EASING: 'cubic-bezier(0.4, 0, 0.2, 1)' // Функция сглаживания
     }
 };

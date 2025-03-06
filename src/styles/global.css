@@ -1,0 +1,115 @@
+/* src/styles/global.css */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Базовые стили для приложения */
+body {
+    @apply m-0 overflow-hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Стили для дерева */
+.tree-container {
+    @apply w-full h-full relative;
+}
+
+.node {
+    transition: transform 0.2s ease;
+}
+
+.node circle {
+    transition: fill 0.2s ease,
+                stroke 0.2s ease,
+                stroke-width 0.2s ease,
+                opacity 0.2s ease;
+}
+
+.node text {
+    @apply select-none cursor-default;
+    transition: fill 0.2s ease;
+}
+
+.node.dragging {
+    cursor: grabbing;
+}
+
+.link {
+    transition: stroke-opacity 0.2s ease,
+                stroke-width 0.2s ease;
+}
+
+/* Стили для контекстного меню */
+.context-menu {
+    @apply bg-white rounded-lg shadow-lg border border-gray-200;
+    animation: fadeIn 0.1s ease-out;
+}
+
+.context-menu-item {
+    @apply px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-pointer
+           transition-colors duration-150 ease-in-out;
+}
+
+.context-menu-divider {
+    @apply my-1 h-px bg-gray-200;
+}
+
+/* Стили для подсказок */
+.tooltip {
+    @apply absolute z-50 bg-white rounded-lg shadow-lg border border-gray-200
+           px-3 py-2 text-sm;
+    animation: fadeIn 0.1s ease-out;
+}
+
+/* Стили для фильтров */
+.filter-controls {
+    @apply bg-white rounded-lg shadow-lg p-4;
+}
+
+.filter-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-md
+           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Кастомный скроллбар */
+::-webkit-scrollbar {
+    @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+    @apply bg-gray-100 rounded-full;
+}
+
+::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full hover:bg-gray-400
+           transition-colors duration-200;
+}
+
+/* Утилиты для позиционирования */
+.center-absolute {
+    @apply absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2;
+}
+
+/* Стили для загрузки */
+.loading-spinner {
+    @apply w-8 h-8 border-4 border-blue-200 border-t-blue-500
+           rounded-full animate-spin;
+}
+
+/* Стили для сообщений об ошибках */
+.error-message {
+    @apply bg-red-50 border border-red-100 rounded-lg p-4 text-red-600;
+}
