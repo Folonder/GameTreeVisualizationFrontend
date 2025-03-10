@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import UploadPage from './pages/UploadPage';
 import TreePage from './pages/TreePage';
+import GridPage from './pages/GridPage';
 import { TREE_CONSTANTS } from './components/tree/constants';
 
 function App() {
@@ -29,11 +30,15 @@ function App() {
 
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<UploadPage />} />
-        <Route path="/tree" element={<TreePage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+
+<Routes>
+  <Route path="/" element={<UploadPage />} />
+  <Route path="/tree" element={<TreePage />} />
+  <Route path="/grid" element={<GridPage />} />
+  <Route path="/grid/:nodeId" element={<GridPage />} />
+  <Route path="/grid-path/:nodePath" element={<GridPage pathMode={true} />} />
+  <Route path="*" element={<Navigate to="/" replace />} />
+</Routes>
     </Router>
   );
 }

@@ -40,6 +40,19 @@ export const getNodeIdentifier = (node) => {
 };
 
 /**
+ * Находит корневой узел дерева
+ * @param {Object} node - Любой узел дерева
+ * @returns {Object} Корневой узел
+ */
+export const findRootNode = (node) => {
+    let root = node;
+    while (root.parent) {
+        root = root.parent;
+    }
+    return root;
+};
+
+/**
  * Calculates the percentage of visits for a node relative to its siblings
  * @param {Object} node - The node object from d3.hierarchy
  * @returns {Number} The percentage value (0-100)
@@ -63,4 +76,27 @@ export const calculateNodePercentage = (node) => {
     
     // Calculate percentage of this node's visits compared to total visits at this level
     return totalVisits > 0 ? (visits / totalVisits * 100) : 0;
+};
+
+/**
+ * Calculates the percentage of visits for a node relative to the root node
+ * @param {Object} node - The node object from d3.hierarchy
+ * @returns {Number} The percentage value (0-100)
+ */
+export const calculateNodePercentageFromRoot = (node) => {
+    // Найдем корневой узел
+    const root = findRootNode(node);
+    
+    // Если передан сам корень, возвращаем 100%
+    if (node === root) return 100;
+    
+    // Получаем количество посещений текущего узла и корня
+    const nodeVisits = node.data.statistics?.numVisits || 0;
+    const rootVisits = root.data.statistics?.numVisits || 0;
+    
+    // Если у корня нет посещений, возвращаем 0
+    if (rootVisits === 0) return 0;
+    
+    // Возвращаем процент от корня
+    return (nodeVisits / rootVisits) * 100;
 };

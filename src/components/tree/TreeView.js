@@ -17,7 +17,15 @@ import { ErrorMessage } from '../common/ErrorMessage';
  */
 const TreeView = ({ data, onError }) => {
     // Set up graph interaction (dragging, panning, zooming)
-    const { setupNodeDrag, setupGraphPan, savedTransform, updateTransform } = useGraphInteraction();
+    const { 
+        setupNodeDrag, 
+        setupGraphPan, 
+        savedTransform, 
+        updateTransform,
+        customNodePositions,
+        setCustomNodePositions,
+        resetNodePosition  // Получаем функцию сброса позиции узла
+    } = useGraphInteraction();
     
     // Set up tree filtering logic
     const {
@@ -76,7 +84,9 @@ const TreeView = ({ data, onError }) => {
         setupGraphPan,
         calculateNodePercentage,
         savedTransform,
-        updateTransform // Добавлен новый параметр
+        updateTransform,
+        customNodePositions,
+        setCustomNodePositions
     });
 
     if (error) {
@@ -99,7 +109,11 @@ const TreeView = ({ data, onError }) => {
                 <FilterControls
                     currentFilters={filters}
                     onApplyFilters={applyFilters}
-                    onResetFilters={resetFilters}
+                    onResetFilters={() => {
+                        resetFilters();
+                        // Сбрасываем пользовательские позиции при сбросе фильтров
+                        setCustomNodePositions(new Map());
+                    }}
                     maxDepth={stats.maxDepth}
                     totalNodes={stats.totalNodes}
                 />
@@ -126,6 +140,7 @@ const TreeView = ({ data, onError }) => {
                         {...contextMenu}
                         onClose={handleCloseContextMenu}
                         onToggleExpansion={handleToggleExpansion}
+                        onResetNodePosition={resetNodePosition}
                         filteredChildrenIds={filteredChildrenIds}
                         hiddenChildrenIds={hiddenChildrenIds}
                         overrideFilterIds={overrideFilterIds}

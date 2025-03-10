@@ -1,7 +1,10 @@
+// 1. Сначала внесем изменения в useGraphInteraction.js, добавив хранение пользовательских позиций
+
 // src/hooks/useGraphInteraction.js
 import { useCallback, useState, useRef } from 'react';
 import * as d3 from 'd3';
 import { TREE_CONSTANTS } from '../components/tree/constants';
+import { getNodeIdentifier } from '../utils/treeUtils';
 
 export const useGraphInteraction = () => {
     // Добавляем состояние для хранения текущей трансформации
@@ -14,6 +17,9 @@ export const useGraphInteraction = () => {
     const zoomRef = useRef(null);
     // Флаг для отслеживания, происходит ли сейчас взаимодействие пользователя
     const userInteractionRef = useRef(false);
+    
+    // НОВОЕ: Добавляем хранилище для пользовательских позиций узлов
+    const [customNodePositions, setCustomNodePositions] = useState(new Map());
 
     // Настраиваем перетаскивание узлов
     const setupNodeDrag = useCallback(() => {
@@ -45,7 +51,13 @@ export const useGraphInteraction = () => {
                 const x = parseFloat(translate[1]);
                 const y = parseFloat(translate[2]);
                 
+                // Обновляем положение в DOM для обеспечения плавности движения
+                // без обновления состояния (это произойдет в событии 'end')
                 group.attr('transform', `translate(${x + event.dx},${y + event.dy})`);
+                
+                // Временно храним текущие координаты в атрибутах data для использования в событии end
+                group.attr('data-drag-x', x + event.dx);
+                group.attr('data-drag-y', y + event.dy);
                 
                 // Находим все дочерние узлы (с осторожностью)
                 try {
@@ -66,7 +78,7 @@ export const useGraphInteraction = () => {
                             }
                         });
                     
-                    // Обновляем позиции всех дочерних узлов
+                    // Обновляем позиции всех дочерних узлов в DOM
                     descendants.each(function() {
                         try {
                             const g = d3.select(this);
@@ -79,7 +91,10 @@ export const useGraphInteraction = () => {
                             const currentX = parseFloat(currentTranslate[1]);
                             const currentY = parseFloat(currentTranslate[2]);
                             
+                            // Только обновляем DOM, без изменения состояния
                             g.attr('transform', `translate(${currentX + event.dx},${currentY + event.dy})`);
+                            g.attr('data-drag-x', currentX + event.dx);
+                            g.attr('data-drag-y', currentY + event.dy);
                         } catch (e) {
                             console.error('Error updating descendant position:', e);
                         }
@@ -139,14 +154,83 @@ export const useGraphInteraction = () => {
                     console.error('Error during drag:', e);
                 }
             })
-            .on('end', function() {
+            .on('end', function(event, d) {
                 if (this && this.parentNode) {
-                    d3.select(this.parentNode).classed('dragging', false);
+                    const parent = d3.select(this.parentNode);
+                    parent.classed('dragging', false);
+                    
+                    // Получаем финальные координаты из атрибутов data-drag
+                    const finalX = parseFloat(parent.attr('data-drag-x'));
+                    const finalY = parseFloat(parent.attr('data-drag-y'));
+                    
+                    if (isNaN(finalX) || isNaN(finalY)) return;
+                    
+                    // Теперь сохраняем координаты перетаскиваемого узла в состоянии
+                    const nodeId = getNodeIdentifier(d);
+                    setCustomNodePositions(prev => {
+                        const newMap = new Map(prev);
+                        newMap.set(nodeId, { 
+                            x: finalX, 
+                            y: finalY,
+                            originalX: d.y,  // Сохраняем оригинальные координаты
+                            originalY: d.x 
+                        });
+                        return newMap;
+                    });
+                    
+                    // Обрабатываем дочерние узлы
+                    const svg = d3.select(this.ownerSVGElement);
+                    if (!svg.node()) return;
+                    
+                    const descendants = svg.selectAll('.node')
+                        .filter(function() {
+                            try {
+                                const thisData = d3.select(this).datum();
+                                if (!thisData || !thisData.parent) return false;
+                                
+                                let current = thisData;
+                                while (current.parent) {
+                                    if (current.parent === d) return true;
+                                    current = current.parent;
+                                }
+                                return false;
+                            } catch (e) {
+                                return false;
+                            }
+                        });
+                    
+                    // Сохраняем координаты потомков в состоянии
+                    descendants.each(function() {
+                        try {
+                            const g = d3.select(this);
+                            const childData = g.datum();
+                            const childId = getNodeIdentifier(childData);
+                            
+                            const finalChildX = parseFloat(g.attr('data-drag-x'));
+                            const finalChildY = parseFloat(g.attr('data-drag-y'));
+                            
+                            if (isNaN(finalChildX) || isNaN(finalChildY)) return;
+                            
+                            setCustomNodePositions(prev => {
+                                const newMap = new Map(prev);
+                                const currentPos = newMap.get(childId) || { x: childData.y, y: childData.x };
+                                newMap.set(childId, { 
+                                    x: finalChildX, 
+                                    y: finalChildY,
+                                    originalX: currentPos.originalX || childData.y,
+                                    originalY: currentPos.originalY || childData.x
+                                });
+                                return newMap;
+                            });
+                        } catch (e) {
+                            console.error('Error saving descendant position:', e);
+                        }
+                    });
                 }
             });
         
         return dragHandler;
-    }, []);
+    }, [setCustomNodePositions]);
 
     // Полностью переработанная функция для настройки панорамирования и масштабирования
     const setupGraphPan = useCallback((svg, mainGroup) => {
@@ -173,7 +257,14 @@ export const useGraphInteraction = () => {
             .on('zoom', (event) => {
                 // Обновляем трансформацию группы
                 mainGroup.style('transform', `translate(${event.transform.x}px, ${event.transform.y}px) scale(${event.transform.k})`);
-                
+    
+                // Подстраиваем размер текста и элементов под обратный масштаб
+                // для сохранения их визуального размера
+                const inverseScale = 1 / event.transform.k;
+                mainGroup.selectAll('.percentage-text, .plus-sign')
+                    .style('transform', `scale(${inverseScale})`);
+                mainGroup.selectAll('.percentage-bg')
+                    .style('transform', `scale(${inverseScale})`);
                 // Сохраняем активную трансформацию в ref всегда
                 activeTransformRef.current = event.transform;
                 
@@ -213,6 +304,33 @@ export const useGraphInteraction = () => {
         activeTransformRef.current = newTransform;
         setSavedTransform(newTransform);
     }, []);
+    
+    // Функция для сброса положения узла
+    const resetNodePosition = useCallback((nodeId) => {
+        setCustomNodePositions(prev => {
+            const newMap = new Map(prev);
+            // Удаляем узел из Map, чтобы использовалось исходное положение
+            newMap.delete(nodeId);
+            
+            // Находим и удаляем также всех потомков этого узла
+            // Это необходимо, чтобы вся ветвь вернулась в исходное положение
+            for (const [key, position] of prev.entries()) {
+                if (key.startsWith(nodeId + '-') || key.includes('-' + nodeId + '-')) {
+                    newMap.delete(key);
+                }
+            }
+            
+            return newMap;
+        });
+    }, [setCustomNodePositions]);
 
-    return { setupNodeDrag, setupGraphPan, savedTransform, updateTransform };
+    return { 
+        setupNodeDrag, 
+        setupGraphPan, 
+        savedTransform, 
+        updateTransform,
+        customNodePositions,
+        setCustomNodePositions,
+        resetNodePosition  // Экспортируем функцию сброса
+    };
 };

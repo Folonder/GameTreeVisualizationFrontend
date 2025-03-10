@@ -23,7 +23,10 @@ export const useTreeRenderer = ({
     setupGraphPan,
     calculateNodePercentage,
     savedTransform,
-    updateTransform // Новый параметр
+    updateTransform,
+    // НОВОЕ: Добавляем пользовательские позиции
+    customNodePositions,
+    setCustomNodePositions
 }) => {
     const svgRef = useRef(null);
     const mainGroupRef = useRef(null);
@@ -79,6 +82,19 @@ export const useTreeRenderer = ({
             allNodes.forEach(node => {
                 if (!node.data.id) {
                     node.data.id = getNodeIdentifier(node);
+                }
+            });
+            
+            // НОВОЕ: Обновляем координаты узлов, используя сохраненные пользовательские позиции
+            allNodes.forEach(node => {
+                const nodeId = getNodeIdentifier(node);
+                const customPosition = customNodePositions.get(nodeId);
+
+                if (customPosition) {
+                    // Если у нас есть сохраненная позиция для этого узла,
+                    // используем ее вместо автоматически рассчитанной
+                    node.x = customPosition.y; // Обратите внимание на x <-> y из-за ориентации дерева
+                    node.y = customPosition.x;
                 }
             });
             
@@ -157,30 +173,6 @@ export const useTreeRenderer = ({
                 .attr('data-id', d => d.data.id)
                 .attr('transform', d => `translate(${d.y},${d.x})`);
             
-            // Add invisible larger circle for better dragging and context menu
-            nodeGroups.append('circle')
-                .attr('r', d => Math.max(
-                    TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS + 10,
-                    Math.min(
-                        Math.sqrt(d.data.statistics?.numVisits || 0) / 2 + 10,
-                        TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS + 10
-                    )
-                ))
-                .style('fill', 'transparent')
-                .style('stroke', 'none')
-                .style('cursor', 'pointer')
-                .on('contextmenu', (event, d) => handleContextMenu(event, d, nodeStates.get(d)))
-                .on('click', (event, d) => {
-                    const nodeId = getNodeIdentifier(d);
-                    // If the node has hidden children (explicitly or through filters)
-                    if (hiddenChildrenIds.has(nodeId)) {
-                        toggleNodeExpansion(d);
-                    } else if (filteredChildrenIds.has(nodeId)) {
-                        toggleFilterOverride(d);
-                    }
-                })
-                .call(dragHandler);
-    
             // Add visible circles for nodes
             nodeGroups.append('circle')
                 .attr('r', d => Math.max(
@@ -199,51 +191,103 @@ export const useTreeRenderer = ({
                         d3.select(this).style(key, value);
                     });
                 })
-                .style('pointer-events', 'none'); // Disable events so they're handled by the larger circle
-    
-                nodeGroups.append('rect')
-    .attr('x', -16) // Половина ширины прямоугольника
-    .attr('y', -TREE_CONSTANTS.DIMENSIONS.NODE.TEXT_OFFSET - 14) 
-    .attr('width', 32) // Ширина прямоугольника
-    .attr('height', 16) // Высота прямоугольника
-    .attr('rx', 3) // Скругление углов
-    .attr('ry', 3)
-    .style('fill', 'rgba(0, 0, 0, 0.7)') // Полупрозрачный чёрный фон
-    .style('stroke', 'rgba(255, 255, 255, 0.5)') // Тонкая белая рамка
-    .style('stroke-width', '1px')
-    .style('pointer-events', 'none');
-            // Add percentage text
-            nodeGroups.append('text')
-    .attr('dy', -TREE_CONSTANTS.DIMENSIONS.NODE.TEXT_OFFSET - 5)
-    .attr('text-anchor', 'middle')
-    .style('font-size', '11px')
-    .style('font-weight', 'bold')
-    .style('fill', '#ffffff') // Белый текст на тёмном фоне
-    .style('pointer-events', 'none')
-    .text(d => {
-        const percentage = calculateNodePercentage(d);
-        return `${Math.round(percentage)}%`;
-    });
+                .style('pointer-events', 'none'); // Disable events so they're handled by the invisible circle
+            
+            // Группируем фон и текст для единого масштабирования, но делаем их меньше
+            nodeGroups.each(function(d) {
+                const node = d3.select(this);
+                const percentage = calculateNodePercentage(d);
+                const radius = Math.max(
+                    TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS,
+                    Math.min(
+                        Math.sqrt(d.data.statistics?.numVisits || 0) / 2,
+                        TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS
+                    )
+                );
                 
-            // Add "+" symbol for nodes with hidden children
+                // Создаем группу для процентов
+                const percentageGroup = node.append('g')
+                    .attr('class', 'percentage-group')
+                    // Уменьшаем отступ, чтобы проценты были ближе к вершине
+                    .attr('transform', `translate(0, ${-radius - 7})`); 
+                
+                // Добавляем фон меньшего размера
+                percentageGroup.append('rect')
+                    .attr('x', -10) // Еще уменьшаем ширину
+                    .attr('y', -6)  // Уменьшаем высоту
+                    .attr('width', 20) // Уменьшаем ширину
+                    .attr('height', 12) // Уменьшаем высоту
+                    .attr('rx', 2) // Меньшее скругление
+                    .attr('ry', 2)
+                    .attr('fill', 'rgba(0, 0, 0, 0.7)')
+                    .attr('stroke', 'rgba(255, 255, 255, 0.5)')
+                    .attr('stroke-width', 0.5);
+                
+                // Добавляем текст меньшего размера
+                percentageGroup.append('text')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'central')
+                    .attr('font-size', 8) // Еще меньший размер шрифта
+                    .attr('font-weight', 'bold')
+                    .attr('fill', '#ffffff')
+                    .text(`${Math.round(percentage)}%`);
+            });
+
+            // Для символа "+" также создаем отдельную группу с оригинальным стилем
             nodeGroups.filter(d => {
                 const nodeId = getNodeIdentifier(d);
                 return hiddenChildrenIds.has(nodeId) || 
-                       (filteredChildrenIds.has(nodeId) && !overrideFilterIds.has(nodeId));
-            }).append('text')
-                .attr('dx', 0)
-                .attr('dy', 5)
-                .attr('text-anchor', 'middle')
-                .style('font-size', '14px')
-                .style('font-weight', 'bold')
-                .style('pointer-events', 'none') // Disable events
-                .text('+')
-                .style('fill', d => {
+                    (filteredChildrenIds.has(nodeId) && !overrideFilterIds.has(nodeId));
+            }).each(function(d) {
+                const node = d3.select(this);
+                const nodeId = getNodeIdentifier(d);
+                
+                // Добавляем знак плюс с оригинальным стилем
+                node.append('text')
+                    .attr('x', 0)
+                    .attr('y', 0)
+                    .attr('text-anchor', 'middle')
+                    .attr('dominant-baseline', 'central')
+                    .attr('font-size', 12) // Еще меньший размер
+                    .attr('font-weight', 'bold')
+                    .attr('fill', d => {
+                        // Возвращаем оригинальный цветовой стиль
+                        return hiddenChildrenIds.has(nodeId) ? 
+                            TREE_CONSTANTS.COLORS.STROKE.HAS_HIDDEN : 
+                            TREE_CONSTANTS.COLORS.STROKE.DEPTH_LIMITED;
+                    })
+                    .text('+');
+            });
+            
+            // Add invisible larger circle for better dragging and context menu
+            // Добавляем в конце, чтобы он был поверх всех других элементов
+            nodeGroups.append('circle')
+                .attr('r', d => {
+                    // Точно такой же радиус как у видимого круга
+                    return Math.max(
+                        TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS,
+                        Math.min(
+                            Math.sqrt(d.data.statistics?.numVisits || 0) / 2,
+                            TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS
+                        )
+                    );
+                })
+                .style('fill', 'transparent')
+                .style('stroke', 'none')
+                .style('cursor', 'pointer')
+                .on('contextmenu', (event, d) => handleContextMenu(event, d, nodeStates.get(d)))
+                .on('click', (event, d) => {
                     const nodeId = getNodeIdentifier(d);
-                    return hiddenChildrenIds.has(nodeId) ? 
-                        TREE_CONSTANTS.COLORS.STROKE.HAS_HIDDEN : 
-                        TREE_CONSTANTS.COLORS.STROKE.DEPTH_LIMITED;
-                });
+                    // If the node has hidden children (explicitly or through filters)
+                    if (hiddenChildrenIds.has(nodeId)) {
+                        toggleNodeExpansion(d);
+                    } else if (filteredChildrenIds.has(nodeId)) {
+                        toggleFilterOverride(d);
+                    }
+                })
+                .call(dragHandler);
     
             // Update statistics
             setStats({
@@ -275,7 +319,10 @@ export const useTreeRenderer = ({
         toggleFilterOverride,
         calculateNodePercentage,
         savedTransform,
-        updateTransform // Добавьте в список зависимостей
+        updateTransform,
+        // НОВОЕ: Добавляем пользовательские позиции в зависимости
+        customNodePositions,
+        setCustomNodePositions
     ]);
 
     // Run rendering when dependencies change

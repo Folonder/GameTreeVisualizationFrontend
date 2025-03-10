@@ -1,10 +1,16 @@
 // src/components/tree/ContextMenu.js
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TREE_CONSTANTS } from './constants';
+import { getNodeIdentifier, calculateNodePercentageFromRoot } from '../../utils/treeUtils';
+import { calculateNodePath, formatPathForUrl } from '../../utils/gridUtils';
 
-const Statistics = ({ data }) => {
+const Statistics = ({ data, node }) => {
     if (!data?.statistics) return null;
     const stats = data.statistics;
+    
+    // Вычисляем процент от корня с точностью до сотых
+    const percentFromRoot = (calculateNodePercentageFromRoot(node)).toFixed(2);
 
     return (
         <div className="absolute left-full top-0 ml-2 bg-white rounded shadow-lg border p-4 min-w-[300px]">
@@ -18,8 +24,8 @@ const Statistics = ({ data }) => {
                             <span className="ml-2 font-medium">{stats.numVisits}</span>
                         </div>
                         <div>
-                            <span className="text-sm text-gray-500">Relative:</span>
-                            <span className="ml-2 font-medium">{Math.round(stats.relativeVisits)}%</span>
+                            <span className="text-sm text-gray-500">Relative to root:</span>
+                            <span className="ml-2 font-medium">{percentFromRoot}%</span>
                         </div>
                     </div>
                 </div>
@@ -50,11 +56,6 @@ const Statistics = ({ data }) => {
     );
 };
 
-const getNodeIdentifier = (node) => {
-    if (!node || !node.data) return '';
-    return node.data.id || '';
-};
-
 const ContextMenu = ({ 
     x, 
     y, 
@@ -64,8 +65,10 @@ const ContextMenu = ({
     filteredChildrenIds,
     overrideFilterIds,
     onClose, 
-    onToggleExpansion 
+    onToggleExpansion,
+    onResetNodePosition 
 }) => {
+    const navigate = useNavigate();
     const [showStats, setShowStats] = useState(false);
     const menuRef = useRef(null);
 
@@ -141,6 +144,24 @@ const ContextMenu = ({
     const handleToggleClick = () => {
         onToggleExpansion();
     };
+    
+    // Обработчик для сброса позиции узла
+    const handleResetPosition = () => {
+        if (onResetNodePosition && nodeId) {
+            onResetNodePosition(nodeId);
+            onClose();
+        }
+    };
+    
+    const handleViewInGrid = () => {
+        if (node) {
+          // Используем путь узла вместо ID
+          const nodePath = calculateNodePath(node);
+          const pathString = formatPathForUrl(nodePath);
+          navigate(`/grid-path/${pathString}`);
+          onClose();
+        }
+      };
 
     // Отображаем кнопку переключения только если у узла есть дети
     const showToggleButton = hasChildren;
@@ -165,8 +186,25 @@ const ContextMenu = ({
                     >
                         View Statistics
                     </button>
-                    {showStats && <Statistics data={node?.data} />}
+                    {showStats && <Statistics data={node?.data} node={node} />}
                 </div>
+
+                {/* Кнопка сброса позиции */}
+                <div className="my-1 h-px bg-gray-200"></div>
+                <button 
+                    className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-gray-100 rounded"
+                    onClick={handleResetPosition}
+                >
+                    Reset Node Position
+                </button>
+                
+                <div className="my-1 h-px bg-gray-200"></div>
+                <button 
+                    className="w-full px-3 py-2 text-left text-sm text-green-600 hover:bg-gray-100 rounded"
+                    onClick={handleViewInGrid}
+                >
+                    View in Grid
+                </button>
 
                 {/* Разделитель и кнопка Hide/Show Children если у узла есть дети */}
                 {showToggleButton && (

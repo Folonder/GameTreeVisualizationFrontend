@@ -41,6 +41,10 @@ const TreePage = () => {
         navigate('/', { replace: true });
     };
 
+    const handleViewInGrid = () => {
+        navigate('/grid');
+    };
+
     if (isLoading) {
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50">
@@ -62,30 +66,34 @@ const TreePage = () => {
         );
     }
 
-// Обновите разметку в TreePage.js
-
-return (
-    <div className="h-screen overflow-hidden bg-gray-50">
-        <div className="h-16 bg-white border-b border-gray-200 flex items-center px-4 justify-between">
-            <h1 className="text-xl font-semibold text-gray-800">Game Tree Visualization</h1>
-            <div className="flex items-center gap-4">
-                <button
-                    onClick={handleReset}
-                    className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
-                >
-                    Upload New File
-                </button>
+    return (
+        <div className="h-screen overflow-hidden bg-gray-50">
+            <div className="h-16 bg-white border-b border-gray-200 flex items-center px-4 justify-between">
+                <h1 className="text-xl font-semibold text-gray-800">Game Tree Visualization</h1>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={handleViewInGrid}
+                        className="px-4 py-2 text-sm text-white bg-green-600 border border-green-700 rounded hover:bg-green-700"
+                    >
+                        View in JSON Grid
+                    </button>
+                    <button
+                        onClick={handleReset}
+                        className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                    >
+                        Upload New File
+                    </button>
+                </div>
+            </div>
+            
+            <div className="h-[calc(100vh-4rem)]">
+                <TreeView 
+                    data={treeData} 
+                    onError={(err) => setError(err.message)}
+                />
             </div>
         </div>
-        
-        <div className="h-[calc(100vh-4rem)]">
-            <TreeView 
-                data={treeData} 
-                onError={(err) => setError(err.message)}
-            />
-        </div>
-    </div>
-);
+    );
 };
 
 export default TreePage;
