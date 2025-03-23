@@ -1,4 +1,6 @@
-// src/components/tree/TreeRenderer.js
+// src/components/tree/TreeRenderer.js - Исправленная версия для перетаскивания узлов
+// Основной момент: обновлен код обработки пользовательских позиций
+
 import { useCallback, useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { getNodeIdentifier } from '../../utils/treeUtils';
@@ -74,19 +76,7 @@ export const useTreeRenderer = ({
                 }
             });
             
-            // Обновляем координаты узлов, используя сохраненные пользовательские позиции
-            allNodes.forEach(node => {
-                const nodeId = getNodeIdentifier(node);
-                const customPosition = customNodePositions.get(nodeId);
-
-                if (customPosition) {
-                    // Если у нас есть сохраненная позиция для этого узла,
-                    // используем ее вместо автоматически рассчитанной
-                    node.x = customPosition.y; // Обратите внимание на x <-> y из-за ориентации дерева
-                    node.y = customPosition.x;
-                }
-            });
-            
+            // Настраиваем макет дерева
             const treeLayout = d3.tree()
                 .size([
                     // Адаптивное вертикальное пространство
@@ -113,7 +103,23 @@ export const useTreeRenderer = ({
                     return baseDistance + sizeAdjustment;
                 });
             
+            // ВАЖНО: Сначала применяем макет для расчета базовых координат,
+            // а затем заменяем их пользовательскими позициями, если они есть
             const root = treeLayout(hierarchy);
+            
+            // После расчета базовых координат, заменяем их пользовательскими
+            // позициями, если таковые имеются
+            allNodes.forEach(node => {
+                const nodeId = getNodeIdentifier(node);
+                const customPosition = customNodePositions.get(nodeId);
+
+                if (customPosition) {
+                    // Если у нас есть сохраненная позиция для этого узла,
+                    // используем ее вместо автоматически рассчитанной
+                    node.x = customPosition.y; // Обратите внимание на x <-> y из-за ориентации дерева
+                    node.y = customPosition.x;
+                }
+            });
             
             // Функция для определения адаптивного радиуса узлов
             const getNodeRadius = (d) => {
@@ -232,6 +238,7 @@ export const useTreeRenderer = ({
                 
                 // Добавляем фон меньшего размера
                 percentageGroup.append('rect')
+                    .attr('class', 'percentage-bg')
                     .attr('x', -10) // Еще уменьшаем ширину
                     .attr('y', -6)  // Уменьшаем высоту
                     .attr('width', 20) // Уменьшаем ширину
@@ -244,6 +251,7 @@ export const useTreeRenderer = ({
                 
                 // Добавляем текст меньшего размера
                 percentageGroup.append('text')
+                    .attr('class', 'percentage-text')
                     .attr('x', 0)
                     .attr('y', 0)
                     .attr('text-anchor', 'middle')
@@ -265,6 +273,7 @@ export const useTreeRenderer = ({
                 
                 // Добавляем знак плюс с оригинальным стилем
                 node.append('text')
+                    .attr('class', 'plus-sign')
                     .attr('x', 0)
                     .attr('y', 0)
                     .attr('text-anchor', 'middle')

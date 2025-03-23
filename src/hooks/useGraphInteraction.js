@@ -1,5 +1,5 @@
-// src/hooks/useGraphInteraction.js
-import { useCallback, useState, useRef } from 'react';
+// src/hooks/useGraphInteraction.js - Исправленный для перетаскивания
+import { useCallback, useState, useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 import { TREE_CONSTANTS } from '../components/tree/constants';
 import { getNodeIdentifier } from '../utils/treeUtils';
@@ -18,12 +18,21 @@ export const useGraphInteraction = () => {
     
     // Добавляем хранилище для пользовательских позиций узлов
     const [customNodePositions, setCustomNodePositions] = useState(new Map());
+    
+    // Для отладки: логирование изменений пользовательских позиций
+    useEffect(() => {
+        console.log("Custom node positions updated, count:", customNodePositions.size);
+    }, [customNodePositions]);
 
     // Настраиваем перетаскивание узлов
     const setupNodeDrag = useCallback(() => {
         // Создаем обработчик перетаскивания
         const dragHandler = d3.drag()
-            .on('start', function(event) {
+            .on('start', function(event, d) {
+                // Помечаем начало перетаскивания
+                event.sourceEvent.stopPropagation();
+                console.log("Drag start for node:", getNodeIdentifier(d));
+                
                 // Поднимаем узел наверх и добавляем класс dragging
                 if (this && this.parentNode) {
                     d3.select(this.parentNode).raise().classed('dragging', true);
@@ -50,14 +59,13 @@ export const useGraphInteraction = () => {
                 const y = parseFloat(translate[2]);
                 
                 // Обновляем положение в DOM для обеспечения плавности движения
-                // без обновления состояния (это произойдет в событии 'end')
                 group.attr('transform', `translate(${x + event.dx},${y + event.dy})`);
                 
                 // Временно храним текущие координаты в атрибутах data для использования в событии end
                 group.attr('data-drag-x', x + event.dx);
                 group.attr('data-drag-y', y + event.dy);
                 
-                // Находим все дочерние узлы (с осторожностью)
+                // Находим все дочерние узлы с помощью d3.hierarchy API
                 try {
                     const descendants = svg.selectAll('.node')
                         .filter(function() {
@@ -89,7 +97,7 @@ export const useGraphInteraction = () => {
                             const currentX = parseFloat(currentTranslate[1]);
                             const currentY = parseFloat(currentTranslate[2]);
                             
-                            // Только обновляем DOM, без изменения состояния
+                            // Обновляем DOM с новой позицией
                             g.attr('transform', `translate(${currentX + event.dx},${currentY + event.dy})`);
                             g.attr('data-drag-x', currentX + event.dx);
                             g.attr('data-drag-y', currentY + event.dy);
@@ -104,26 +112,22 @@ export const useGraphInteraction = () => {
                             const linkData = d3.select(this).datum();
                             if (!linkData || !linkData.source || !linkData.target) return;
                             
-                            // Получаем связанные узлы
-                            const source = linkData.source;
-                            const target = linkData.target;
-                            
                             // Определяем, связано ли с перетаскиваемым узлом или его потомками
-                            const isMoved = source === d || target === d ||
-                                            descendants.data().includes(source) || 
-                                            descendants.data().includes(target);
+                            const isMoved = linkData.source === d || linkData.target === d ||
+                                            descendants.data().includes(linkData.source) || 
+                                            descendants.data().includes(linkData.target);
                             
                             if (isMoved) {
                                 // Получаем текущие позиции узлов
-                                const sourceNode = svg.select(`.node[data-id="${source.data.id}"]`);
-                                const targetNode = svg.select(`.node[data-id="${target.data.id}"]`);
+                                const sourceNode = svg.select(`.node[data-id="${linkData.source.data.id}"]`);
+                                const targetNode = svg.select(`.node[data-id="${linkData.target.data.id}"]`);
                                 
                                 if (!sourceNode.node() || !targetNode.node()) return;
                                 
                                 // Обновляем путь для линии
                                 d3.select(this).attr('d', d3.linkHorizontal()
                                     .x(function(p) {
-                                        const node = p === source ? sourceNode : targetNode;
+                                        const node = p === linkData.source ? sourceNode : targetNode;
                                         if (!node.node()) return p.y;
                                         
                                         const transform = node.attr('transform');
@@ -133,7 +137,7 @@ export const useGraphInteraction = () => {
                                         return translate ? parseFloat(translate[1]) : p.y;
                                     })
                                     .y(function(p) {
-                                        const node = p === source ? sourceNode : targetNode;
+                                        const node = p === linkData.source ? sourceNode : targetNode;
                                         if (!node.node()) return p.x;
                                         
                                         const transform = node.attr('transform');
@@ -153,92 +157,105 @@ export const useGraphInteraction = () => {
                 }
             })
             .on('end', function(event, d) {
-                if (this && this.parentNode) {
-                    const parent = d3.select(this.parentNode);
-                    parent.classed('dragging', false);
-                    
-                    // Получаем финальные координаты из атрибутов data-drag
-                    const finalX = parseFloat(parent.attr('data-drag-x'));
-                    const finalY = parseFloat(parent.attr('data-drag-y'));
-                    
-                    if (isNaN(finalX) || isNaN(finalY)) return;
-                    
-                    // Теперь сохраняем координаты перетаскиваемого узла в состоянии
-                    const nodeId = getNodeIdentifier(d);
-                    setCustomNodePositions(prev => {
-                        const newMap = new Map(prev);
-                        newMap.set(nodeId, { 
-                            x: finalX, 
-                            y: finalY,
-                            originalX: d.y,  // Сохраняем оригинальные координаты
-                            originalY: d.x 
-                        });
-                        return newMap;
+                if (!this || !this.parentNode) return;
+                
+                const parent = d3.select(this.parentNode);
+                parent.classed('dragging', false);
+                
+                // Получаем финальные координаты из атрибутов data-drag
+                const finalX = parseFloat(parent.attr('data-drag-x'));
+                const finalY = parseFloat(parent.attr('data-drag-y'));
+                
+                if (isNaN(finalX) || isNaN(finalY)) {
+                    console.error("Invalid final coordinates for drag");
+                    return;
+                }
+                
+                // Ключевой момент: сохраняем координаты в состоянии
+                const nodeId = getNodeIdentifier(d);
+                console.log("Drag end for node:", nodeId, "Final position:", finalX, finalY);
+                
+                // Важно: используем функциональное обновление состояния
+                setCustomNodePositions(prev => {
+                    const newMap = new Map(prev);
+                    // Сохраняем новую позицию
+                    newMap.set(nodeId, { 
+                        x: finalX, 
+                        y: finalY,
+                        originalX: d.y,  // Сохраняем оригинальные координаты
+                        originalY: d.x 
                     });
-                    
-                    // Обрабатываем дочерние узлы
-                    const svg = d3.select(this.ownerSVGElement);
-                    if (!svg.node()) return;
-                    
-                    const descendants = svg.selectAll('.node')
-                        .filter(function() {
-                            try {
-                                const thisData = d3.select(this).datum();
-                                if (!thisData || !thisData.parent) return false;
-                                
-                                let current = thisData;
-                                while (current.parent) {
-                                    if (current.parent === d) return true;
-                                    current = current.parent;
-                                }
-                                return false;
-                            } catch (e) {
-                                return false;
-                            }
-                        });
-                    
-                    // Сохраняем координаты потомков в состоянии
-                    descendants.each(function() {
+                    return newMap;
+                });
+                
+                // Обрабатываем дочерние узлы
+                const svg = d3.select(this.ownerSVGElement);
+                if (!svg.node()) return;
+                
+                const descendants = svg.selectAll('.node')
+                    .filter(function() {
                         try {
-                            const g = d3.select(this);
-                            const childData = g.datum();
-                            const childId = getNodeIdentifier(childData);
+                            const thisData = d3.select(this).datum();
+                            if (!thisData || !thisData.parent) return false;
                             
-                            const finalChildX = parseFloat(g.attr('data-drag-x'));
-                            const finalChildY = parseFloat(g.attr('data-drag-y'));
-                            
-                            if (isNaN(finalChildX) || isNaN(finalChildY)) return;
-                            
-                            setCustomNodePositions(prev => {
-                                const newMap = new Map(prev);
-                                const currentPos = newMap.get(childId) || { x: childData.y, y: childData.x };
-                                newMap.set(childId, { 
-                                    x: finalChildX, 
-                                    y: finalChildY,
-                                    originalX: currentPos.originalX || childData.y,
-                                    originalY: currentPos.originalY || childData.x
-                                });
-                                return newMap;
-                            });
+                            let current = thisData;
+                            while (current.parent) {
+                                if (current.parent === d) return true;
+                                current = current.parent;
+                            }
+                            return false;
                         } catch (e) {
-                            console.error('Error saving descendant position:', e);
+                            return false;
                         }
                     });
-                }
+                
+                // Сохраняем координаты потомков в состоянии
+                descendants.each(function() {
+                    try {
+                        const g = d3.select(this);
+                        const childData = g.datum();
+                        const childId = getNodeIdentifier(childData);
+                        
+                        const finalChildX = parseFloat(g.attr('data-drag-x'));
+                        const finalChildY = parseFloat(g.attr('data-drag-y'));
+                        
+                        if (isNaN(finalChildX) || isNaN(finalChildY)) {
+                            console.error("Invalid child coordinates for drag");
+                            return;
+                        }
+                        
+                        // Используем функциональное обновление для каждого потомка
+                        setCustomNodePositions(prev => {
+                            const newMap = new Map(prev);
+                            const currentPos = newMap.get(childId) || { 
+                                x: childData.y, 
+                                y: childData.x 
+                            };
+                            
+                            // Сохраняем новую позицию
+                            newMap.set(childId, { 
+                                x: finalChildX, 
+                                y: finalChildY,
+                                originalX: currentPos.originalX || childData.y,
+                                originalY: currentPos.originalY || childData.x
+                            });
+                            return newMap;
+                        });
+                    } catch (e) {
+                        console.error('Error saving descendant position:', e);
+                    }
+                });
             });
         
         return dragHandler;
-    }, [setCustomNodePositions]);
+    }, []);
 
     // Полностью переработанная функция для настройки панорамирования и масштабирования
     const setupGraphPan = useCallback((svg, mainGroup) => {
         // Определяем начальный масштаб в зависимости от размера дерева
         const determineInitialScale = () => {
-            // Мы не можем получить непосредственно данные дерева здесь,
-            // поэтому используем фиксированные значения или пытаемся
-            // определить размер дерева по DOM
+            // Попытка определить размер дерева по количеству узлов в DOM
             try {
-                // Попытка определить размер дерева по количеству узлов в DOM
                 const nodeCount = svg.selectAll('.node').size();
                 if (nodeCount < 10) return 1.0;      // Для очень маленьких деревьев
                 if (nodeCount < 20) return 0.8;      // Для маленьких деревьев
@@ -324,6 +341,7 @@ export const useGraphInteraction = () => {
     
     // Функция для сброса положения узла
     const resetNodePosition = useCallback((nodeId) => {
+        console.log("Resetting position for node:", nodeId);
         setCustomNodePositions(prev => {
             const newMap = new Map(prev);
             // Удаляем узел из Map, чтобы использовалось исходное положение
@@ -339,7 +357,7 @@ export const useGraphInteraction = () => {
             
             return newMap;
         });
-    }, [setCustomNodePositions]);
+    }, []);
 
     return { 
         setupNodeDrag, 
@@ -350,4 +368,4 @@ export const useGraphInteraction = () => {
         setCustomNodePositions,
         resetNodePosition  // Экспортируем функцию сброса
     };
-};
+}
