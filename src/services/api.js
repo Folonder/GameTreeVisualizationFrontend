@@ -1,5 +1,32 @@
 const API_URL = process.env.REACT_APP_API_URL;
 
+// In your API service file
+async function getTreeMetadata(treeId) {
+    const url = `${API_URL}/TreePlayback/${treeId}/metadata`;
+    console.log('Requesting metadata from:', url);
+    
+    try {
+        const response = await fetch(url);
+        console.log('Response status:', response.status);
+        
+        // Log the raw response text first to see what's coming back
+        const text = await response.text();
+        console.log('Raw response:', text);
+        
+        // Try to parse it as JSON (this will fail if it's HTML)
+        try {
+            const data = JSON.parse(text);
+            return data;
+        } catch (e) {
+            console.error('JSON parse error:', e);
+            throw new Error(`Invalid JSON response: ${text.substring(0, 100)}...`);
+        }
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
+    }
+}
+
 async function handleResponse(response) {
     const contentType = response.headers.get('content-type');
     
