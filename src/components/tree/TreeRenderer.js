@@ -24,7 +24,7 @@ export const useTreeRenderer = ({
     calculateNodePercentage,
     savedTransform,
     updateTransform,
-    // НОВОЕ: Добавляем пользовательские позиции
+    // Добавляем пользовательские позиции
     customNodePositions,
     setCustomNodePositions
 }) => {
@@ -54,29 +54,18 @@ export const useTreeRenderer = ({
                .attr('height', TREE_CONSTANTS.DIMENSIONS.HEIGHT);
     
             const hierarchy = d3.hierarchy(data);
-            const treeLayout = d3.tree()
-                .size([
-                    // Увеличиваем вертикальное пространство для дерева в 2.5 раза
-                    (TREE_CONSTANTS.DIMENSIONS.HEIGHT - TREE_CONSTANTS.DIMENSIONS.PADDING) * 2.5,
-                    TREE_CONSTANTS.DIMENSIONS.WIDTH - TREE_CONSTANTS.DIMENSIONS.PADDING
-                ])
-                .separation((a, b) => {
-                    // Увеличиваем базовое расстояние между узлами
-                    const baseDistance = a.parent === b.parent 
-                        ? TREE_CONSTANTS.LAYOUT.SEPARATION.SIBLINGS * 1.5
-                        : TREE_CONSTANTS.LAYOUT.SEPARATION.NON_SIBLINGS * 1.5;
-    
-                    // Дополнительно учитываем размер узлов при определении расстояния
-                    const sizeAdjustment = Math.max(
-                        Math.sqrt(a.data.statistics?.numVisits || 0),
-                        Math.sqrt(b.data.statistics?.numVisits || 0)
-                    ) / 40;
-    
-                    return baseDistance + sizeAdjustment;
-                });
-    
-            const root = treeLayout(hierarchy);
-            const allNodes = root.descendants();
+            const allNodes = hierarchy.descendants();
+            
+            // Определяем размер дерева
+            const nodeCount = allNodes.length;
+            const maxDepth = Math.max(...allNodes.map(d => d.depth), 0);
+            
+            // Адаптивно настраиваем размер и расстояние на основе размера дерева
+            const isSmallTree = nodeCount < 20 || maxDepth < 3;
+            
+            // Настройка расстояния на основе размера дерева
+            const verticalSpacingMultiplier = isSmallTree ? 1.0 : 2.5; // Меньший множитель для маленьких деревьев
+            const nodeSpacingMultiplier = isSmallTree ? 2.5 : 1.5; // Больший множитель для маленьких деревьев
             
             // Add unique IDs for nodes
             allNodes.forEach(node => {
@@ -85,7 +74,7 @@ export const useTreeRenderer = ({
                 }
             });
             
-            // НОВОЕ: Обновляем координаты узлов, используя сохраненные пользовательские позиции
+            // Обновляем координаты узлов, используя сохраненные пользовательские позиции
             allNodes.forEach(node => {
                 const nodeId = getNodeIdentifier(node);
                 const customPosition = customNodePositions.get(nodeId);
@@ -97,6 +86,48 @@ export const useTreeRenderer = ({
                     node.y = customPosition.x;
                 }
             });
+            
+            const treeLayout = d3.tree()
+                .size([
+                    // Адаптивное вертикальное пространство
+                    (TREE_CONSTANTS.DIMENSIONS.HEIGHT - TREE_CONSTANTS.DIMENSIONS.PADDING) * verticalSpacingMultiplier,
+                    TREE_CONSTANTS.DIMENSIONS.WIDTH - TREE_CONSTANTS.DIMENSIONS.PADDING
+                ])
+                .separation((a, b) => {
+                    // Адаптивное горизонтальное расстояние
+                    const baseDistance = a.parent === b.parent 
+                        ? TREE_CONSTANTS.LAYOUT.SEPARATION.SIBLINGS * nodeSpacingMultiplier
+                        : TREE_CONSTANTS.LAYOUT.SEPARATION.NON_SIBLINGS * nodeSpacingMultiplier;
+                    
+                    // Дополнительная настройка для маленьких деревьев
+                    if (isSmallTree) {
+                        return baseDistance + 0.5; // Добавляем немного больше пространства для маленьких деревьев
+                    }
+
+                    // Учитываем размер узлов при определении расстояния
+                    const sizeAdjustment = Math.max(
+                        Math.sqrt(a.data.statistics?.numVisits || 0),
+                        Math.sqrt(b.data.statistics?.numVisits || 0)
+                    ) / 40;
+
+                    return baseDistance + sizeAdjustment;
+                });
+            
+            const root = treeLayout(hierarchy);
+            
+            // Функция для определения адаптивного радиуса узлов
+            const getNodeRadius = (d) => {
+                const baseRadius = Math.max(
+                    TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS,
+                    Math.min(
+                        Math.sqrt(d.data.statistics?.numVisits || 0) / 2,
+                        TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS
+                    )
+                );
+                
+                // Для маленьких деревьев увеличиваем размер узлов
+                return isSmallTree ? baseRadius * 1.5 : baseRadius;
+            };
             
             // Filter nodes using recursive visibility check
             const visibleNodes = [];
@@ -175,13 +206,7 @@ export const useTreeRenderer = ({
             
             // Add visible circles for nodes
             nodeGroups.append('circle')
-                .attr('r', d => Math.max(
-                    TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS,
-                    Math.min(
-                        Math.sqrt(d.data.statistics?.numVisits || 0) / 2,
-                        TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS
-                    )
-                ))
+                .attr('r', getNodeRadius)
                 .each(function(d) {
                     const nodeState = nodeStates.get(d);
                     const visits = d.data.statistics?.numVisits || 0;
@@ -197,13 +222,7 @@ export const useTreeRenderer = ({
             nodeGroups.each(function(d) {
                 const node = d3.select(this);
                 const percentage = calculateNodePercentage(d);
-                const radius = Math.max(
-                    TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS,
-                    Math.min(
-                        Math.sqrt(d.data.statistics?.numVisits || 0) / 2,
-                        TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS
-                    )
-                );
+                const radius = getNodeRadius(d);
                 
                 // Создаем группу для процентов
                 const percentageGroup = node.append('g')
@@ -264,16 +283,7 @@ export const useTreeRenderer = ({
             // Add invisible larger circle for better dragging and context menu
             // Добавляем в конце, чтобы он был поверх всех других элементов
             nodeGroups.append('circle')
-                .attr('r', d => {
-                    // Точно такой же радиус как у видимого круга
-                    return Math.max(
-                        TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS,
-                        Math.min(
-                            Math.sqrt(d.data.statistics?.numVisits || 0) / 2,
-                            TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS
-                        )
-                    );
-                })
+                .attr('r', getNodeRadius)
                 .style('fill', 'transparent')
                 .style('stroke', 'none')
                 .style('cursor', 'pointer')
@@ -320,7 +330,6 @@ export const useTreeRenderer = ({
         calculateNodePercentage,
         savedTransform,
         updateTransform,
-        // НОВОЕ: Добавляем пользовательские позиции в зависимости
         customNodePositions,
         setCustomNodePositions
     ]);

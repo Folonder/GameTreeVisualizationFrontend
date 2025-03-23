@@ -1,4 +1,4 @@
-// src/pages/TreeGrowthPage.js
+// src/pages/TreeGrowthPage.js (обновленный)
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import TreeView from '../components/tree/TreeView';
@@ -6,9 +6,10 @@ import LoadingIndicator from '../components/common/LoadingIndicator';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import StatusMessage from '../components/common/StatusMessage';
 import Button from '../components/common/Button';
+import { sessionApi } from '../services/api';
 
 const TreeGrowthPage = () => {
-    const { sessionId } = useParams();
+    const { sessionId, turnNumber } = useParams();
     const navigate = useNavigate();
     
     const [loading, setLoading] = useState(true);
@@ -23,26 +24,21 @@ const TreeGrowthPage = () => {
     // Fetch tree growth data
     useEffect(() => {
         const fetchTreeGrowth = async () => {
+            if (!sessionId || !turnNumber) {
+                setError("Session ID and turn number are required");
+                setLoading(false);
+                return;
+            }
+            
             try {
                 setLoading(true);
+                setError(null);
                 
-                // Send the session ID in the request body
-                const response = await fetch('http://localhost:5002/api/GameSession/growth', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ sessionId }),
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch tree growth: ${response.statusText}`);
-                }
-                
-                const data = await response.json();
+                // Получаем данные роста дерева для указанного хода
+                const data = await sessionApi.getTurnGrowth(sessionId, parseInt(turnNumber));
                 
                 if (!data || !Array.isArray(data) || data.length === 0) {
-                    throw new Error('No growth data available for this session');
+                    throw new Error('No growth data available for this turn');
                 }
                 
                 // Ensure statistics are properly formatted for visualization
@@ -56,7 +52,7 @@ const TreeGrowthPage = () => {
                 setCurrentStepIndex(0);
             } catch (err) {
                 console.error('Error fetching tree growth:', err);
-                setError(err.message);
+                setError(err.message || 'Failed to load tree growth data');
             } finally {
                 setLoading(false);
             }
@@ -70,22 +66,35 @@ const TreeGrowthPage = () => {
                 clearInterval(playbackTimerRef.current);
             }
         };
-    }, [sessionId]);
+    }, [sessionId, turnNumber]);
     
     // Recursive function to ensure all nodes have statistics
-    const ensureNodeStatistics = (node) => {
-        if (!node) return;
-        
-        // Ensure node has statistics object
-        if (!node.statistics) {
-            node.statistics = { numVisits: 0, relativeVisits: 0, statisticsForActions: [] };
-        }
-        
-        // Process children recursively
-        if (node.children && Array.isArray(node.children)) {
-            node.children.forEach(ensureNodeStatistics);
-        }
-    };
+    // Удостоверимся, что у каждого узла есть необходимые поля статистики
+const ensureNodeStatistics = (node) => {
+    if (!node) return;
+    
+    // Ensure node has statistics object
+    if (!node.statistics) {
+        node.statistics = { numVisits: 0, relativeVisits: 0, statisticsForActions: [] };
+    } else if (typeof node.statistics.numVisits !== 'number') {
+        node.statistics.numVisits = 0;
+    }
+    
+    // Ensure relative visits property exists
+    if (typeof node.statistics.relativeVisits !== 'number') {
+        node.statistics.relativeVisits = 0;
+    }
+    
+    // Ensure statisticsForActions is an array
+    if (!Array.isArray(node.statistics.statisticsForActions)) {
+        node.statistics.statisticsForActions = [];
+    }
+    
+    // Process children recursively
+    if (node.children && Array.isArray(node.children)) {
+        node.children.forEach(ensureNodeStatistics);
+    }
+};
     
     // Handle playback
     useEffect(() => {
@@ -136,6 +145,10 @@ const TreeGrowthPage = () => {
         setCurrentStepIndex(0);
     };
     
+    const handleBackToTurns = () => {
+        navigate(`/turns/${sessionId}`);
+    };
+    
     const handleBackToGames = () => {
         navigate('/');
     };
@@ -154,7 +167,7 @@ const TreeGrowthPage = () => {
                 <div className="w-full max-w-lg p-8">
                     <ErrorMessage 
                         message={error}
-                        onReset={handleBackToGames}
+                        onReset={handleBackToTurns}
                     />
                 </div>
             </div>
@@ -172,17 +185,26 @@ const TreeGrowthPage = () => {
                     </h1>
                     <StatusMessage 
                         type="info" 
-                        message={`Session: ${sessionId}`}
+                        message={`Session: ${sessionId} | Turn: ${turnNumber}`}
                         className="bg-blue-50 text-xs py-1 px-2"
                     />
                 </div>
                 
-                <Button
-                    onClick={handleBackToGames}
-                    variant="secondary"
-                >
-                    Back to Sessions
-                </Button>
+                <div className="flex space-x-2">
+                    <Button
+                        onClick={handleBackToTurns}
+                        variant="secondary"
+                    >
+                        Back to Turns
+                    </Button>
+                    
+                    <Button
+                        onClick={handleBackToGames}
+                        variant="secondary"
+                    >
+                        Back to Sessions
+                    </Button>
+                </div>
             </div>
             
             <div className="h-[calc(100vh-4rem)]">
@@ -261,7 +283,11 @@ const TreeGrowthPage = () => {
                             <div>
                                 <span className="font-medium">Turn:</span> {currentStep.turn}
                                 {' | '}
-                                <span className="font-medium">Patch:</span> {currentStep.patchNumber}
+                                <span className="font-medium">Step:</span> {currentStep.stepNumber}
+                                {' | '}
+                                <span className="font-medium">
+                                    {currentStep.patchNumber === -1 ? 'Final State' : `Growth #${currentStep.patchNumber}`}
+                                </span>
                                 {' | '}
                                 <span className="font-medium">Visits:</span> {currentStep.tree?.statistics?.numVisits || 0}
                             </div>

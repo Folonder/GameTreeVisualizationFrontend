@@ -45,7 +45,7 @@ const SessionInputPage = () => {
             }
             
             // Navigate to the tree growth player
-            navigate(`/tree-growth/${sessionId}`);
+            navigate(`/turns/${sessionId}`);
         } catch (err) {
             setError(`Error: ${err.message}`);
             console.error('Error checking session:', err);

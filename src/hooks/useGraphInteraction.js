@@ -1,5 +1,3 @@
-// 1. Сначала внесем изменения в useGraphInteraction.js, добавив хранение пользовательских позиций
-
 // src/hooks/useGraphInteraction.js
 import { useCallback, useState, useRef } from 'react';
 import * as d3 from 'd3';
@@ -18,7 +16,7 @@ export const useGraphInteraction = () => {
     // Флаг для отслеживания, происходит ли сейчас взаимодействие пользователя
     const userInteractionRef = useRef(false);
     
-    // НОВОЕ: Добавляем хранилище для пользовательских позиций узлов
+    // Добавляем хранилище для пользовательских позиций узлов
     const [customNodePositions, setCustomNodePositions] = useState(new Map());
 
     // Настраиваем перетаскивание узлов
@@ -234,6 +232,24 @@ export const useGraphInteraction = () => {
 
     // Полностью переработанная функция для настройки панорамирования и масштабирования
     const setupGraphPan = useCallback((svg, mainGroup) => {
+        // Определяем начальный масштаб в зависимости от размера дерева
+        const determineInitialScale = () => {
+            // Мы не можем получить непосредственно данные дерева здесь,
+            // поэтому используем фиксированные значения или пытаемся
+            // определить размер дерева по DOM
+            try {
+                // Попытка определить размер дерева по количеству узлов в DOM
+                const nodeCount = svg.selectAll('.node').size();
+                if (nodeCount < 10) return 1.0;      // Для очень маленьких деревьев
+                if (nodeCount < 20) return 0.8;      // Для маленьких деревьев
+                if (nodeCount < 50) return 0.7;      // Для средних деревьев
+                return 0.5;                          // Для больших деревьев
+            } catch (e) {
+                console.error('Error determining tree size:', e);
+                return 0.5; // Default scale
+            }
+        };
+        
         // Если у нас уже есть активная трансформация, используем её
         // Иначе используем сохраненную или дефолтную
         let initialTransform;
@@ -244,7 +260,8 @@ export const useGraphInteraction = () => {
             initialTransform = savedTransform;
             activeTransformRef.current = savedTransform; // Сохраняем в ref
         } else {
-            initialTransform = d3.zoomIdentity.translate(50, 50).scale(0.5);
+            const initialScale = determineInitialScale();
+            initialTransform = d3.zoomIdentity.translate(50, 50).scale(initialScale);
             activeTransformRef.current = initialTransform; // Сохраняем в ref
         }
 

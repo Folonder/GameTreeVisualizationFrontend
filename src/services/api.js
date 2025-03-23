@@ -1,32 +1,7 @@
-const API_URL = process.env.REACT_APP_API_URL;
+// src/services/api.js
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
 
-// In your API service file
-async function getTreeMetadata(treeId) {
-    const url = `${API_URL}/TreePlayback/${treeId}/metadata`;
-    console.log('Requesting metadata from:', url);
-    
-    try {
-        const response = await fetch(url);
-        console.log('Response status:', response.status);
-        
-        // Log the raw response text first to see what's coming back
-        const text = await response.text();
-        console.log('Raw response:', text);
-        
-        // Try to parse it as JSON (this will fail if it's HTML)
-        try {
-            const data = JSON.parse(text);
-            return data;
-        } catch (e) {
-            console.error('JSON parse error:', e);
-            throw new Error(`Invalid JSON response: ${text.substring(0, 100)}...`);
-        }
-    } catch (error) {
-        console.error('Fetch error:', error);
-        throw error;
-    }
-}
-
+// Обработчик ответов от API
 async function handleResponse(response) {
     const contentType = response.headers.get('content-type');
     
@@ -49,13 +24,13 @@ async function handleResponse(response) {
     
     if (contentType?.includes('application/json')) {
         const data = await response.json();
-        console.log('Successful response:', data);
         return data;
     }
     
-    throw new Error('Unexpected response type');
+    return await response.text();
 }
 
+// API для работы с деревьями
 export const treeApi = {
     async uploadTree(jsonData) {
         const response = await fetch(`${API_URL}/GameTree/process`, {
@@ -78,6 +53,65 @@ export const treeApi = {
 
     async getStats() {
         const response = await fetch(`${API_URL}/GameTree/stats`);
+        return handleResponse(response);
+    }
+};
+
+// API для работы с сессиями игр
+export const sessionApi = {
+    async checkSession(sessionId) {
+        const response = await fetch(`${API_URL}/GameSession/exists`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId }),
+        });
+        return handleResponse(response);
+    },
+
+    async getAvailableTurns(sessionId) {
+        const response = await fetch(`${API_URL}/GameSession/turns`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId }),
+        });
+        return handleResponse(response);
+    },
+
+    async getTurnGrowth(sessionId, turnNumber) {
+        const response = await fetch(`${API_URL}/GameSession/turn/growth`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId, turnNumber }),
+        });
+        return handleResponse(response);
+    },
+
+    async getTreeGrowth(sessionId) {
+        const response = await fetch(`${API_URL}/GameSession/growth`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId }),
+        });
+        return handleResponse(response);
+    },
+    
+    // Получение начального состояния дерева для хода
+    async getInitialTree(sessionId, turnNumber) {
+        const response = await fetch(`${API_URL}/GameSession/turn/initial`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId, turnNumber }),
+        });
         return handleResponse(response);
     }
 };
