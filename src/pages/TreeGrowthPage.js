@@ -180,8 +180,8 @@ const ensureNodeStatistics = (node) => {
         <div className="h-screen overflow-hidden bg-gray-50">
             <div className="h-16 bg-white border-b border-gray-200 flex items-center px-4 justify-between">
                 <div className="flex items-center">
-                    <h1 className="text-xl font-semibold text-gray-800 mr-4">
-                        Tree Growth Player
+                    <h1 className="text-xl font-semibold text-gray-800 mr-4" onClick={() => navigate('/')}>
+                    Game Tree Visualization
                     </h1>
                     <StatusMessage 
                         type="info" 

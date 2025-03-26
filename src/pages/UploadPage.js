@@ -49,7 +49,7 @@ const UploadPage = () => {
             <div className="max-w-7xl mx-auto py-12 px-4">
                 {/* Заголовок */}
                 <div className="text-center mb-12">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                    <h1 className="text-4xl font-bold text-gray-900 mb-4" onClick={() => navigate('/')}>
                         Game Tree Visualization
                     </h1>
                     <p className="text-lg text-gray-600 max-w-2xl mx-auto">
