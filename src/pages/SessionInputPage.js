@@ -69,7 +69,7 @@ const SessionInputPage = () => {
                         <input
                             id="sessionId"
                             type="text"
-                            placeholder="e.g., MyTur.ticTacToe1x3.1741612206744"
+                            placeholder="ticTacToe_20250326_175456_1587262025626962580"
                             value={sessionId}
                             onChange={(e) => setSessionId(e.target.value)}
                             className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

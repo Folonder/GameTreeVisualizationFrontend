@@ -7,13 +7,15 @@ import TreeGrowthPage from './pages/TreeGrowthPage';
 import UploadPage from './pages/UploadPage';
 import TreePage from './pages/TreePage';
 import GridPage from './pages/GridPage';
+import HomePage from './pages/HomePage';
 
 function App() {
   return (
     <Router>
       <Routes>
         {/* Основные страницы приложения */}
-        <Route path="/" element={<SessionInputPage />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/sessions" element={<SessionInputPage />} />
         <Route path="/turns/:sessionId" element={<TurnSelectionPage />} />
         <Route path="/tree-growth/:sessionId/:turnNumber" element={<TreeGrowthPage />} />
         

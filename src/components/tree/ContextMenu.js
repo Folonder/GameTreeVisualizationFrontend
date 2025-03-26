@@ -1,4 +1,4 @@
-// src/components/tree/ContextMenu.js
+// src/components/tree/ContextMenu.js - исправленный View in Grid
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TREE_CONSTANTS } from './constants';
@@ -156,12 +156,22 @@ const ContextMenu = ({
     const handleViewInGrid = () => {
         if (node) {
           // Используем путь узла вместо ID
-          const nodePath = calculateNodePath(node);
-          const pathString = formatPathForUrl(nodePath);
-          navigate(`/grid-path/${pathString}`);
+          try {
+            const nodePath = calculateNodePath(node);
+            if (nodePath && nodePath.length > 0) {
+                const pathString = formatPathForUrl(nodePath);
+                // Открываем в новом окне
+                window.open(`/grid-path/${pathString}`, '_blank');
+            } else {
+                // Для корневого узла просто открываем страницу сетки
+                window.open('/grid', '_blank');
+            }
+          } catch (error) {
+            console.error("Error navigating to grid view:", error);
+          }
           onClose();
         }
-      };
+    };
 
     // Отображаем кнопку переключения только если у узла есть дети
     const showToggleButton = hasChildren;

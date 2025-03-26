@@ -30,33 +30,6 @@ async function handleResponse(response) {
     return await response.text();
 }
 
-// API для работы с деревьями
-export const treeApi = {
-    async uploadTree(jsonData) {
-        const response = await fetch(`${API_URL}/GameTree/process`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: jsonData
-        });
-        return handleResponse(response);
-    },
-
-    async getCurrentTree() {
-        const response = await fetch(`${API_URL}/GameTree/current`);
-        if (response.status === 404) {
-            return null;
-        }
-        return handleResponse(response);
-    },
-
-    async getStats() {
-        const response = await fetch(`${API_URL}/GameTree/stats`);
-        return handleResponse(response);
-    }
-};
-
 // API для работы с сессиями игр
 export const sessionApi = {
     async checkSession(sessionId) {
@@ -91,27 +64,4 @@ export const sessionApi = {
         });
         return handleResponse(response);
     },
-
-    async getTreeGrowth(sessionId) {
-        const response = await fetch(`${API_URL}/GameSession/growth`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ sessionId }),
-        });
-        return handleResponse(response);
-    },
-    
-    // Получение начального состояния дерева для хода
-    async getInitialTree(sessionId, turnNumber) {
-        const response = await fetch(`${API_URL}/GameSession/turn/initial`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ sessionId, turnNumber }),
-        });
-        return handleResponse(response);
-    }
 };
