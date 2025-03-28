@@ -1,5 +1,5 @@
 // src/services/api.js
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002/api';
+const API_URL =  process.env.REACT_APP_API_URL || 'http://localhost/api';
 
 // Обработчик ответов от API
 async function handleResponse(response) {
@@ -33,7 +33,7 @@ async function handleResponse(response) {
 // API для работы с сессиями игр
 export const sessionApi = {
     async checkSession(sessionId) {
-        const response = await fetch(`${API_URL}/GameSession/exists`, {
+        const response = await fetch(`${API_URL}GameSession/exists`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -44,7 +44,7 @@ export const sessionApi = {
     },
 
     async getAvailableTurns(sessionId) {
-        const response = await fetch(`${API_URL}/GameSession/turns`, {
+        const response = await fetch(`${API_URL}GameSession/turns`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -55,7 +55,7 @@ export const sessionApi = {
     },
 
     async getTurnGrowth(sessionId, turnNumber) {
-        const response = await fetch(`${API_URL}/GameSession/turn/growth`, {
+        const response = await fetch(`${API_URL}GameSession/turn/growth`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

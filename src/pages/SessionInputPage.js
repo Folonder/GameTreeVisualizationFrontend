@@ -5,6 +5,7 @@ import Card from '../components/common/Card';
 import Button from '../components/common/Button';
 import { ErrorMessage } from '../components/common/ErrorMessage';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import { sessionApi } from '../services/api';
 
 const SessionInputPage = () => {
     const navigate = useNavigate();
@@ -24,20 +25,8 @@ const SessionInputPage = () => {
         setIsLoading(true);
         
         try {
-            // Send the session ID in the request body
-            const response = await fetch('http://localhost:5002/api/GameSession/exists', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ sessionId }),
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to check session');
-            }
-            
-            const exists = await response.json();
+            // Use the sessionApi instead of direct fetch
+            const exists = await sessionApi.checkSession(sessionId);
             
             if (!exists) {
                 setError(`Session "${sessionId}" not found`);
