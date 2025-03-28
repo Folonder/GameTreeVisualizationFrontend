@@ -1,20 +1,26 @@
-# Используем базовый образ Node.js
-FROM node:18
+# Use a more specific and lighter Node.js image
+FROM node:18-alpine
 
-# Устанавливаем рабочую директорию
+# Set working directory
 WORKDIR /app
 
-# Копируем package.json и package-lock.json (если есть)
+# Copy package files first to leverage Docker caching
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm install
+# Install dependencies
+RUN npm ci 
 
-# Копируем весь проект в контейнер
+# Copy only necessary files, consider using .dockerignore
 COPY . .
 
-# Открываем порт для разработки
+# Set ownership of the application files to the node user
+RUN chown -R node:node /app
+
+# Expose the port
 EXPOSE 5001
 
-# Запускаем приложение в режиме разработки
+# Switch to non-root user
+USER node
+
+# Start the application
 CMD ["npm", "start"]
