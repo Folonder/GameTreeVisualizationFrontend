@@ -274,6 +274,14 @@ const ensureNodeStatistics = (node) => {
                                     &gt;
                                 </Button>
                             </div>
+                            {/* Add the new View Details button */}
+                                <Button
+                                    onClick={() => navigate(`/iteration-details/${sessionId}/${turnNumber}/${currentStepIndex}`)}
+                                    variant="primary"
+                                    className="ml-4 bg-indigo-600 hover:bg-indigo-700"
+                                >
+                                    View Iteration Details
+                                </Button>
                         </div>
                     </div>
                     

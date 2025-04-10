@@ -1,4 +1,4 @@
-// src/App.js (обновленный)
+// Update src/App.js - Add new route
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SessionInputPage from './pages/SessionInputPage';
@@ -8,28 +8,27 @@ import UploadPage from './pages/UploadPage';
 import TreePage from './pages/TreePage';
 import GridPage from './pages/GridPage';
 import HomePage from './pages/HomePage';
+import IterationDetailsPage from './pages/IterationDetailsPage'; // Import the new page
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Основные страницы приложения */}
+        {/* Existing routes */}
         <Route path="/" element={<HomePage />} />
         <Route path="/sessions" element={<SessionInputPage />} />
         <Route path="/turns/:sessionId" element={<TurnSelectionPage />} />
         <Route path="/tree-growth/:sessionId/:turnNumber" element={<TreeGrowthPage />} />
-        
-        {/* Существующие страницы для загрузки и визуализации произвольных деревьев */}
         <Route path="/upload" element={<UploadPage />} />
         <Route path="/tree" element={<TreePage />} />
         <Route path="/grid" element={<GridPage />} />
         <Route path="/grid/:nodeId" element={<GridPage />} />
         <Route path="/grid-path/:nodePath" element={<GridPage pathMode={true} />} />
         
-        {/* Старые маршруты, перенаправляем на новые */}
-        <Route path="/tree-growth/:sessionId" element={<Navigate to="/" replace />} />
+        {/* New route for iteration details */}
+        <Route path="/iteration-details/:sessionId/:turnNumber/:iterationNumber" element={<IterationDetailsPage />} />
         
-        {/* Обработка несуществующих маршрутов */}
+        {/* Fallback routes */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

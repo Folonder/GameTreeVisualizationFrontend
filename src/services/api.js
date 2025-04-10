@@ -64,4 +64,16 @@ export const sessionApi = {
         });
         return handleResponse(response);
     },
+
+    // Add to sessionApi object in src/services/api.js
+    async getIterationDetails(sessionId, turnNumber, iterationNumber) {
+        const response = await fetch(`${API_URL}GameSession/turn/iteration`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ sessionId, turnNumber, iterationNumber }),
+        });
+        return handleResponse(response);
+    },
 };
