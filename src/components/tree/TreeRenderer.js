@@ -62,11 +62,30 @@ export const useTreeRenderer = ({
             const maxDepth = Math.max(...allNodes.map(d => d.depth), 0);
             
             // Адаптивно настраиваем размер и расстояние на основе размера дерева
-            const isSmallTree = nodeCount < 20 || maxDepth < 3;
+            const isTinyTree = nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.TINY_TREE.NODE_COUNT || 
+                              maxDepth < TREE_CONSTANTS.ADAPTIVE_SCALING.TINY_TREE.DEPTH;
+            const isSmallTree = nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.SMALL_TREE.NODE_COUNT || 
+                               maxDepth < TREE_CONSTANTS.ADAPTIVE_SCALING.SMALL_TREE.DEPTH;
             
-            // Настройка расстояния на основе размера дерева
-            const verticalSpacingMultiplier = isSmallTree ? 1.0 : 2.5; // Меньший множитель для маленьких деревьев
-            const nodeSpacingMultiplier = isSmallTree ? 2.5 : 1.5; // Больший множитель для маленьких деревьев
+            // Адаптивные множители для размеров и расстояний в зависимости от размера дерева
+            let verticalSpacingMultiplier, nodeSpacingMultiplier, nodeScaleMultiplier;
+
+            if (isTinyTree) {
+                // Для очень маленьких деревьев (менее 20 узлов)
+                verticalSpacingMultiplier = 0.6;   // Меньше вертикальное пространство
+                nodeSpacingMultiplier = 1.2;      // Меньшее расстояние между узлами
+                nodeScaleMultiplier = TREE_CONSTANTS.ADAPTIVE_SCALING.TINY_TREE.SCALE;  // Значительно увеличиваем размер узлов
+            } else if (isSmallTree) {
+                // Для малых деревьев (20-50 узлов)
+                verticalSpacingMultiplier = 0.8;   // Уменьшенное вертикальное пространство
+                nodeSpacingMultiplier = 1.5;      // Меньшее расстояние между узлами
+                nodeScaleMultiplier = TREE_CONSTANTS.ADAPTIVE_SCALING.SMALL_TREE.SCALE;  // Увеличиваем размер узлов
+            } else {
+                // Для больших деревьев (более 50 узлов)
+                verticalSpacingMultiplier = 2.5;   // Стандартное вертикальное пространство
+                nodeSpacingMultiplier = 1.5;      // Стандартное расстояние
+                nodeScaleMultiplier = 1.0;        // Стандартный размер узлов
+            }
             
             // Add unique IDs for nodes
             allNodes.forEach(node => {
@@ -88,12 +107,14 @@ export const useTreeRenderer = ({
                         ? TREE_CONSTANTS.LAYOUT.SEPARATION.SIBLINGS * nodeSpacingMultiplier
                         : TREE_CONSTANTS.LAYOUT.SEPARATION.NON_SIBLINGS * nodeSpacingMultiplier;
                     
-                    // Дополнительная настройка для маленьких деревьев
-                    if (isSmallTree) {
-                        return baseDistance + 0.5; // Добавляем немного больше пространства для маленьких деревьев
+                    // Дополнительная настройка для маленьких деревьев - уменьшаем расстояние
+                    if (isTinyTree) {
+                        return baseDistance * TREE_CONSTANTS.ADAPTIVE_SCALING.TINY_TREE.SPACING; // Еще плотнее для очень маленьких деревьев
+                    } else if (isSmallTree) {
+                        return baseDistance * TREE_CONSTANTS.ADAPTIVE_SCALING.SMALL_TREE.SPACING; // Плотнее для маленьких деревьев
                     }
 
-                    // Учитываем размер узлов при определении расстояния
+                    // Для больших деревьев - учитываем размер узлов при определении расстояния
                     const sizeAdjustment = Math.max(
                         Math.sqrt(a.data.statistics?.numVisits || 0),
                         Math.sqrt(b.data.statistics?.numVisits || 0)
@@ -160,36 +181,52 @@ export const useTreeRenderer = ({
                 .attr('dur', '1.5s')
                 .attr('repeatCount', '3');
             
-            // Функция для определения адаптивного радиуса узлов
-            // Функция для определения адаптивного радиуса узлов
+            // Улучшенная функция для определения размера узлов
+            // Улучшенная функция для определения размера узлов
+// Все узлы начинают большими, узлы с малым количеством посещений со временем уменьшаются
+// Улучшенная функция для определения размера узлов
+// Расчет относительно корневого узла
+// Исправленная функция для определения размера узлов
+// Расчет относительно корневого узла, меньшие узлы имеют меньший размер
 const getNodeRadius = (d) => {
-    // Получаем максимальное количество посещений в дереве
-    const maxVisits = allNodes.reduce((max, node) => {
-        const visits = node.data.statistics?.numVisits || 0;
-        return Math.max(max, visits);
-    }, 1); // Минимум 1, чтобы избежать деления на ноль
+    // Находим корневой узел
+    const rootNode = allNodes.find(node => node.depth === 0);
+    if (!rootNode) return TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS; // Защита от ошибок
+    
+    // Получаем количество посещений корневого узла
+    const rootVisits = rootNode.data.statistics?.numVisits || 1;
     
     // Получаем количество посещений текущего узла
     const visits = d.data.statistics?.numVisits || 0;
     
-    // Если это листовой узел или узел с малым количеством посещений
-    if ((!d.children || d.children.length === 0) && visits < maxVisits * 0.1) {
-        // Малый узел - уменьшенный размер
-        const sizeRatio = Math.max(0.2, visits / (maxVisits * 0.1));
-        const minSmallRadius = TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS * 0.8;
-        return minSmallRadius + (TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS * 0.5 - minSmallRadius) * sizeRatio;
+    // Определяем базовый максимальный и минимальный размеры в зависимости от размера дерева
+    const baseMaxRadius = isTinyTree 
+        ? TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS * 2
+        : isSmallTree 
+            ? TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS * 1.5
+            : TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS;
+            
+    const baseMinRadius = isTinyTree 
+        ? TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS * 1.2
+        : isSmallTree 
+            ? TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS * 1.1
+            : TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS;
+    
+    // Если корневой узел имеет мало посещений (в начале работы алгоритма),
+    // то все узлы отображаем крупно
+    if (rootVisits < TREE_CONSTANTS.ADAPTIVE_SCALING.VISITS_THRESHOLD.INITIAL_LARGE) {
+        return baseMaxRadius * 0.8; // 80% от максимального размера для всех узлов
     }
     
-    // Для малопосещаемых внутренних узлов - средний размер
-    if (visits < maxVisits * 0.3) {
-        const sizeRatio = Math.max(0.4, visits / (maxVisits * 0.3));
-        const mediumRadius = TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS * 0.7;
-        return TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS + (mediumRadius - TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS) * sizeRatio;
-    }
+    // Для всех узлов: размер обратно пропорционален доле посещений от корневого узла
+    // Узлы с меньшим числом посещений будут меньше
+    const visitRatio = visits / rootVisits;
     
-    // Для хорошо исследованных узлов - большой размер
-    const sizeRatio = Math.max(0.6, visits / maxVisits);
-    return TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS * sizeRatio;
+    // Нелинейная функция масштабирования - чем меньше отношение, тем меньше узел
+    // Минимальный размер - baseMinRadius, максимальный - baseMaxRadius
+    const radius = baseMinRadius + (baseMaxRadius - baseMinRadius) * visitRatio;
+    
+    return radius;
 };
             
             // Helper для определения стиля узла, основанного на изменениях
@@ -276,7 +313,7 @@ const getNodeRadius = (d) => {
                 .attr('transform', `translate(${TREE_CONSTANTS.DIMENSIONS.MARGIN}, ${TREE_CONSTANTS.DIMENSIONS.MARGIN})`);
             
             mainGroupRef.current = g;
-            setupGraphPan(svg, g);
+            setupGraphPan(svg, g, nodeCount);
     
             // Render links
             g.selectAll('path.link')
@@ -329,6 +366,11 @@ const getNodeRadius = (d) => {
                 const percentage = calculateNodePercentage(d);
                 const radius = getNodeRadius(d);
                 
+                // Настраиваем размер текста процентов в зависимости от размера дерева
+                const fontSize = isTinyTree ? 10 : isSmallTree ? 9 : 8;
+                const bgWidth = isTinyTree ? 24 : isSmallTree ? 22 : 20;
+                const bgHeight = isTinyTree ? 14 : isSmallTree ? 13 : 12;
+                
                 // Создаем группу для процентов
                 const percentageGroup = node.append('g')
                     .attr('class', 'percentage-group')
@@ -338,10 +380,10 @@ const getNodeRadius = (d) => {
                 // Добавляем фон меньшего размера
                 percentageGroup.append('rect')
                     .attr('class', 'percentage-bg')
-                    .attr('x', -10) // Еще уменьшаем ширину
-                    .attr('y', -6)  // Уменьшаем высоту
-                    .attr('width', 20) // Уменьшаем ширину
-                    .attr('height', 12) // Уменьшаем высоту
+                    .attr('x', -bgWidth/2) 
+                    .attr('y', -bgHeight/2)
+                    .attr('width', bgWidth)
+                    .attr('height', bgHeight)
                     .attr('rx', 2) // Меньшее скругление
                     .attr('ry', 2)
                     .attr('fill', 'rgba(0, 0, 0, 0.7)')
@@ -355,7 +397,7 @@ const getNodeRadius = (d) => {
                     .attr('y', 0)
                     .attr('text-anchor', 'middle')
                     .attr('dominant-baseline', 'central')
-                    .attr('font-size', 8) // Еще меньший размер шрифта
+                    .attr('font-size', fontSize)
                     .attr('font-weight', 'bold')
                     .attr('fill', '#ffffff')
                     .text(`${Math.round(percentage)}%`);
@@ -374,7 +416,7 @@ const getNodeRadius = (d) => {
                             .attr('y', -5)
                             .attr('text-anchor', 'start')
                             .attr('dominant-baseline', 'middle')
-                            .attr('font-size', 10)
+                            .attr('font-size', isTinyTree ? 12 : 10)
                             .attr('font-weight', 'bold')
                             .attr('fill', '#2196f3')
                             .text(`+${updatedNode.change}`)
@@ -392,6 +434,9 @@ const getNodeRadius = (d) => {
                 const node = d3.select(this);
                 const nodeId = getNodeIdentifier(d);
                 
+                // Настраиваем размер знака "+" в зависимости от размера дерева
+                const plusSize = isTinyTree ? 16 : isSmallTree ? 14 : 12;
+                
                 // Добавляем знак плюс с оригинальным стилем
                 node.append('text')
                     .attr('class', 'plus-sign')
@@ -399,7 +444,7 @@ const getNodeRadius = (d) => {
                     .attr('y', 0)
                     .attr('text-anchor', 'middle')
                     .attr('dominant-baseline', 'central')
-                    .attr('font-size', 12) // Еще меньший размер
+                    .attr('font-size', plusSize)
                     .attr('font-weight', 'bold')
                     .attr('fill', d => {
                         // Возвращаем оригинальный цветовой стиль
@@ -450,7 +495,7 @@ const getNodeRadius = (d) => {
                         .attr('y', 5)
                         .attr('text-anchor', 'start')
                         .attr('dominant-baseline', 'middle')
-                        .attr('font-size', 10)
+                        .attr('font-size', isTinyTree ? 12 : 10)
                         .attr('font-weight', 'bold')
                         .attr('fill', '#4caf50')
                         .text('NEW')

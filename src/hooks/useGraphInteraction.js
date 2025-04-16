@@ -251,87 +251,139 @@ export const useGraphInteraction = () => {
     }, []);
 
     // Полностью переработанная функция для настройки панорамирования и масштабирования
-    const setupGraphPan = useCallback((svg, mainGroup) => {
-        // Определяем начальный масштаб в зависимости от размера дерева
-        const determineInitialScale = () => {
-            // Попытка определить размер дерева по количеству узлов в DOM
-            try {
-                const nodeCount = svg.selectAll('.node').size();
-                if (nodeCount < 10) return 1.0;      // Для очень маленьких деревьев
-                if (nodeCount < 20) return 0.8;      // Для маленьких деревьев
-                if (nodeCount < 50) return 0.7;      // Для средних деревьев
-                return 0.5;                          // Для больших деревьев
-            } catch (e) {
-                console.error('Error determining tree size:', e);
-                return 0.5; // Default scale
-            }
-        };
+    // Полностью переработанная функция для настройки панорамирования и масштабирования
+const setupGraphPan = useCallback((svg, mainGroup, nodeCount = 0) => {
+    // Определяем начальный масштаб в зависимости от размера дерева
+    const determineInitialScale = () => {
+        // Определяем размер дерева по количеству узлов
+        const displayWidth = window.innerWidth;
+        const displayHeight = window.innerHeight;
         
-        // Если у нас уже есть активная трансформация, используем её
-        // Иначе используем сохраненную или дефолтную
-        let initialTransform;
+        console.log(`Tree size: ${nodeCount} nodes, Display: ${displayWidth}x${displayHeight}`);
         
-        if (activeTransformRef.current) {
-            initialTransform = activeTransformRef.current;
-        } else if (savedTransform) {
-            initialTransform = savedTransform;
-            activeTransformRef.current = savedTransform; // Сохраняем в ref
-        } else {
-            const initialScale = determineInitialScale();
-            initialTransform = d3.zoomIdentity.translate(50, 50).scale(initialScale);
-            activeTransformRef.current = initialTransform; // Сохраняем в ref
+        // Для очень маленьких деревьев (менее 20 узлов) начинаем с большого масштаба
+        if (nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.TINY_TREE.NODE_COUNT) {
+            return 0.85; // Почти 1:1
         }
+        
+        // Для малых деревьев (20-50 узлов)
+        if (nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.SMALL_TREE.NODE_COUNT) {
+            return 0.7;
+        }
+        
+        // Для средних деревьев (50-200 узлов)
+        if (nodeCount < 200) {
+            return 0.55;
+        }
+        
+        // Для больших деревьев (200-500 узлов)
+        if (nodeCount < 500) {
+            return 0.45;
+        }
+        
+        // Для очень больших деревьев
+        return 0.35;
+    };
 
-        // Создаем новый объект zoom
-        const zoom = d3.zoom()
-            .scaleExtent([TREE_CONSTANTS.LAYOUT.ZOOM.MIN, TREE_CONSTANTS.LAYOUT.ZOOM.MAX])
-            .on('start', () => {
-                userInteractionRef.current = true;
-            })
-            .on('zoom', (event) => {
-                // Обновляем трансформацию группы
-                mainGroup.style('transform', `translate(${event.transform.x}px, ${event.transform.y}px) scale(${event.transform.k})`);
-    
-                // Подстраиваем размер текста и элементов под обратный масштаб
-                // для сохранения их визуального размера
-                const inverseScale = 1 / event.transform.k;
-                mainGroup.selectAll('.percentage-text, .plus-sign')
-                    .style('transform', `scale(${inverseScale})`);
-                mainGroup.selectAll('.percentage-bg')
-                    .style('transform', `scale(${inverseScale})`);
-                // Сохраняем активную трансформацию в ref всегда
-                activeTransformRef.current = event.transform;
-                
-                // Обновляем состояние только при взаимодействии пользователя
-                if (event.sourceEvent) {
-                    setSavedTransform(event.transform);
-                }
-            })
-            .on('end', () => {
-                userInteractionRef.current = false;
-            });
-        
-        // Сохраняем объект zoom в ref
-        zoomRef.current = zoom;
-        
-        // Применяем zoom к SVG
-        svg.call(zoom);
-        
-        // Применяем трансформацию только один раз при первой загрузке
-        if (!isTransformSet.current) {
-            svg.call(zoom.transform, initialTransform);
-            isTransformSet.current = true;
-        } else {
-            // Для последующих рендеров напрямую применяем трансформацию к группе
-            // без вызова zoom.transform
-            mainGroup.style('transform', `translate(${initialTransform.x}px, ${initialTransform.y}px) scale(${initialTransform.k})`);
+    // Определяем начальное смещение в зависимости от размера дерева
+    const determineInitialTranslation = () => {
+        // Для маленьких деревьев - центрируем ближе к началу
+        if (nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.TINY_TREE.NODE_COUNT) {
+            return [100, Math.min(200, window.innerHeight / 4)]; // Ближе к центру экрана
         }
         
-        // Возвращаем функцию для очистки
-        return () => {
-            svg.on('.zoom', null);
-        };
-    }, [savedTransform]);
+        // Для средних деревьев
+        if (nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.SMALL_TREE.NODE_COUNT) {
+            return [80, Math.min(150, window.innerHeight / 5)];
+        }
+        
+        // Для больших деревьев - стандартный отступ
+        return [50, 50];
+    };
+
+    // Если у нас уже есть активная трансформация, используем её
+    // Иначе используем сохраненную или дефолтную
+    let initialTransform;
+
+    if (activeTransformRef.current) {
+        initialTransform = activeTransformRef.current;
+    } else if (savedTransform) {
+        initialTransform = savedTransform;
+        activeTransformRef.current = savedTransform; // Сохраняем в ref
+    } else {
+        const initialScale = determineInitialScale();
+        const [initialX, initialY] = determineInitialTranslation();
+        initialTransform = d3.zoomIdentity.translate(initialX, initialY).scale(initialScale);
+        activeTransformRef.current = initialTransform; // Сохраняем в ref
+    }
+
+    // Создаем новый объект zoom с адаптивными пределами масштабирования
+    const zoom = d3.zoom()
+        .scaleExtent([
+            TREE_CONSTANTS.LAYOUT.ZOOM.MIN * 0.8, // Немного уменьшаем минимальный масштаб
+            // Увеличиваем максимальный масштаб для маленьких деревьев
+            nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.SMALL_TREE.NODE_COUNT ? 
+                TREE_CONSTANTS.LAYOUT.ZOOM.MAX * 2 : 
+                TREE_CONSTANTS.LAYOUT.ZOOM.MAX
+        ])
+        .on('start', () => {
+            userInteractionRef.current = true;
+        })
+        .on('zoom', (event) => {
+            // Обновляем трансформацию группы
+            mainGroup.style('transform', `translate(${event.transform.x}px, ${event.transform.y}px) scale(${event.transform.k})`);
+            
+            // Подстраиваем размер текста и элементов под обратный масштаб
+            // для сохранения их визуального размера
+            const inverseScale = 1 / event.transform.k;
+            mainGroup.selectAll('.percentage-text, .plus-sign')
+                .style('transform', `scale(${inverseScale})`);
+            mainGroup.selectAll('.percentage-bg')
+                .style('transform', `scale(${inverseScale})`);
+
+            // Добавляем автоматическое подстраивание текста процентов при большом масштабе
+            // Это особенно полезно для маленьких деревьев
+            if (event.transform.k > 1.2) {
+                mainGroup.selectAll('.percentage-text')
+                    .style('font-size', `${8 * inverseScale}px`);
+                mainGroup.selectAll('.percentage-bg')
+                    .attr('width', 20 * inverseScale)
+                    .attr('height', 12 * inverseScale);
+            }
+
+            // Сохраняем активную трансформацию в ref всегда
+            activeTransformRef.current = event.transform;
+            
+            // Обновляем состояние только при взаимодействии пользователя
+            if (event.sourceEvent) {
+                setSavedTransform(event.transform);
+            }
+        })
+        .on('end', () => {
+            userInteractionRef.current = false;
+        });
+    
+    // Сохраняем объект zoom в ref
+    zoomRef.current = zoom;
+    
+    // Применяем zoom к SVG
+    svg.call(zoom);
+    
+    // Применяем трансформацию только один раз при первой загрузке
+    if (!isTransformSet.current) {
+        svg.call(zoom.transform, initialTransform);
+        isTransformSet.current = true;
+    } else {
+        // Для последующих рендеров напрямую применяем трансформацию к группе
+        // без вызова zoom.transform
+        mainGroup.style('transform', `translate(${initialTransform.x}px, ${initialTransform.y}px) scale(${initialTransform.k})`);
+    }
+    
+    // Возвращаем функцию для очистки
+    return () => {
+        svg.on('.zoom', null);
+    };
+}, [savedTransform]);
 
     // Добавляем функцию для программного обновления трансформации
     const updateTransform = useCallback((newTransform) => {
