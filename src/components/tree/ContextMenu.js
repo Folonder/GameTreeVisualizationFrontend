@@ -1,8 +1,8 @@
-// src/components/tree/ContextMenu.js - исправленный View in Grid
+// src/components/tree/ContextMenu.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { TREE_CONSTANTS } from './constants';
-import { getNodeIdentifier, calculateNodePercentageFromRoot } from '../../utils/treeUtils';
+import { getNodeIdentifier, calculateNodePercentageFromRoot, findRootNode } from '../../utils/treeUtils';
 import { calculateNodePath, formatPathForUrl } from '../../utils/gridUtils';
 
 const Statistics = ({ data, node }) => {
@@ -153,25 +153,72 @@ const ContextMenu = ({
         }
     };
     
-    const handleViewInGrid = () => {
-        if (node) {
-          // Используем путь узла вместо ID
-          try {
+    // Исправленный обработчик для просмотра узла в Grid
+    // Исправленный обработчик для просмотра узла в Grid
+const handleViewInGrid = () => {
+    if (node) {
+        try {
+            // Создаем полный объект узла с необходимыми данными
+            // Убедимся, что у узла есть все свойства для отображения
+            const preparedNode = { ...node };
+            
+            // Работаем с data свойством, если оно есть
+            if (node.data) {
+                // Совмещаем свойства из data и верхнего уровня
+                preparedNode.data = { ...node.data };
+                
+                // Переносим важные свойства из data на верхний уровень, если их там нет
+                if (!preparedNode.id && preparedNode.data.id) {
+                    preparedNode.id = preparedNode.data.id;
+                }
+                
+                if (!preparedNode.state && preparedNode.data.state) {
+                    preparedNode.state = preparedNode.data.state;
+                }
+                
+                if (!preparedNode.statistics && preparedNode.data.statistics) {
+                    preparedNode.statistics = preparedNode.data.statistics;
+                }
+                
+                if (!preparedNode.children && preparedNode.data.children) {
+                    preparedNode.children = preparedNode.data.children;
+                }
+            }
+            
+            // Сохраняем полное дерево и обеспечиваем сохранение всех метаданных
+            const root = findRootNode(node);
+            
+            // Логируем структуру для отладки
+            console.log("Node structure:", preparedNode);
+            console.log("Root structure:", root);
+            
+            // Сохраняем данные в LocalStorage для передачи в Grid
+            // Важно: сохраняем в 'treeData', а не в 'currentTreeData'
+            localStorage.setItem('treeData', JSON.stringify(root.data ? root.data : root));
+            
+            // Вычисляем путь к узлу в дереве
             const nodePath = calculateNodePath(node);
+            console.log("Node path calculated:", nodePath);
+            
             if (nodePath && nodePath.length > 0) {
+                // Форматируем путь для URL
                 const pathString = formatPathForUrl(nodePath);
-                // Открываем в новом окне
+                console.log("Path for URL:", pathString);
+                
+                // Открываем в новом окне с путем к узлу
                 window.open(`/grid-path/${pathString}`, '_blank');
             } else {
                 // Для корневого узла просто открываем страницу сетки
                 window.open('/grid', '_blank');
             }
-          } catch (error) {
+        } catch (error) {
             console.error("Error navigating to grid view:", error);
-          }
-          onClose();
+            // Fallback: открываем просто Grid без указания узла
+            window.open('/grid', '_blank');
         }
-    };
+        onClose();
+    }
+};
 
     // Отображаем кнопку переключения только если у узла есть дети
     const showToggleButton = hasChildren;

@@ -15,7 +15,12 @@ import { ErrorMessage } from '../common/ErrorMessage';
  * Main component for tree visualization
  * Combines filtering, rendering, and interaction logic
  */
-const TreeView = ({ data, onError }) => {
+const TreeView = ({ 
+    data, 
+    onError, 
+    changes, // Добавляем параметр с информацией об изменениях
+    highlightChanges = false // Параметр для включения подсветки изменений
+}) => {
     // Set up graph interaction (dragging, panning, zooming)
     const { 
         setupNodeDrag, 
@@ -24,7 +29,7 @@ const TreeView = ({ data, onError }) => {
         updateTransform,
         customNodePositions,
         setCustomNodePositions,
-        resetNodePosition  // Получаем функцию сброса позиции узла
+        resetNodePosition
     } = useGraphInteraction();
     
     // Set up tree filtering logic
@@ -86,7 +91,9 @@ const TreeView = ({ data, onError }) => {
         savedTransform,
         updateTransform,
         customNodePositions,
-        setCustomNodePositions
+        setCustomNodePositions,
+        changes,
+        highlightChanges
     });
 
     if (error) {
@@ -127,6 +134,20 @@ const TreeView = ({ data, onError }) => {
                     Hidden by filters: {filteredChildrenIds.size} |
                     Filter overrides: {overrideFilterIds.size}
                 </div>
+                
+                {/* Информация об изменениях */}
+                {changes && highlightChanges && (
+                    <div className="ml-auto flex items-center space-x-4">
+                        <div className="flex items-center">
+                            <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
+                            <span className="text-xs">Новые узлы: {changes.newNodes.length}</span>
+                        </div>
+                        <div className="flex items-center">
+                            <div className="w-3 h-3 rounded-full bg-blue-500 mr-1"></div>
+                            <span className="text-xs">Обновленные узлы: {changes.updatedNodes.length}</span>
+                        </div>
+                    </div>
+                )}
             </div>
             <div className="flex-1 relative">
                 <svg 

@@ -1,5 +1,5 @@
 // src/components/grid/JsonGrid.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const JsonGrid = ({ 
   data, 
@@ -13,6 +13,18 @@ const JsonGrid = ({
     }, {})
   );
 
+  // Эффект для автоматического разворачивания путей
+  useEffect(() => {
+    if (initialExpandedPaths && initialExpandedPaths.length > 0) {
+      setExpandedPaths(
+        initialExpandedPaths.reduce((acc, path) => {
+          acc[path] = true;
+          return acc;
+        }, {})
+      );
+    }
+  }, [initialExpandedPaths]);
+
   const togglePath = (path) => {
     setExpandedPaths(prev => ({
       ...prev,
@@ -20,7 +32,7 @@ const JsonGrid = ({
     }));
   };
 
-  const renderValue = (value, path, nodePath = null) => {
+  const renderValue = (value, path, nodePath = null, nodeIndex = null) => {
     // Проверяем, является ли узел выбранным
     const isSelected = selectedNodePath && nodePath && selectedNodePath === nodePath;
     
@@ -44,6 +56,7 @@ const JsonGrid = ({
             className={`cursor-pointer flex items-center p-2 border-b border-gray-200 ${isSelected ? 'bg-yellow-100' : 'bg-gray-50'}`}
             onClick={() => togglePath(path)}
             id={nodePath ? `node-path-${nodePath}` : ''}
+            data-node-index={nodeIndex}
           >
             <span className="text-xs font-bold mr-2 w-4 h-4 flex items-center justify-center border border-gray-300 rounded-full">
               {expandedPaths[path] ? '−' : '+'}
@@ -68,7 +81,12 @@ const JsonGrid = ({
                       <tr key={`${path}[${index}]`} className="border-b border-gray-200 last:border-b-0">
                         <td className="p-2 border-r border-gray-200 text-gray-500 text-xs w-16 whitespace-nowrap">[{index}]</td>
                         <td className="p-2">
-                          {renderValue(item, `${path}[${index}]`, nodePath ? `${nodePath}-${index}` : `${index}`)}
+                          {renderValue(
+                            item, 
+                            `${path}[${index}]`, 
+                            nodePath ? `${nodePath}-${index}` : `${index}`,
+                            index
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -91,6 +109,7 @@ const JsonGrid = ({
             className={`cursor-pointer flex items-center p-2 border-b border-gray-200 ${isSelected ? 'bg-yellow-100' : 'bg-gray-50'}`}
             onClick={() => togglePath(path)}
             id={nodePath ? `node-path-${nodePath}` : ''}
+            data-node-index={nodeIndex}
           >
             <span className="text-xs font-bold mr-2 w-4 h-4 flex items-center justify-center border border-gray-300 rounded-full">
               {expandedPaths[path] ? '−' : '+'}
@@ -112,8 +131,11 @@ const JsonGrid = ({
                   </thead>
                   <tbody>
                     {entries.map(([key, val]) => (
-                      <tr key={`${path}.${key}`} className="border-b border-gray-200 last:border-b-0">
-                        <td className="p-2 border-r border-gray-200 text-blue-600 font-medium w-1/4 min-w-[150px] whitespace-nowrap align-top">{key}</td>
+                      <tr key={`${path}.${key}`} className={`border-b border-gray-200 last:border-b-0 ${key === 'id' || key === 'depth' ? 'bg-blue-50' : ''}`}>
+                        <td className={`p-2 border-r border-gray-200 ${key === 'id' || key === 'depth' ? 'text-blue-700' : 'text-blue-600'} font-medium w-1/4 min-w-[150px] whitespace-nowrap align-top`}>
+                          {key}
+                          {(key === 'id' || key === 'depth') && <span className="ml-1 text-xs text-red-600">*</span>}
+                        </td>
                         <td className="p-2">
                           {key === 'children' && Array.isArray(val) 
                             ? renderValue(val, `${path}.${key}`, nodePath)
@@ -156,7 +178,7 @@ const JsonGrid = ({
 
   return (
     <div className="json-grid bg-white rounded-lg shadow-sm overflow-auto text-sm border border-gray-300 max-h-[calc(100vh-220px)]">
-      {renderValue(data, 'root', '')}
+      {renderValue(data, 'root', '', null)}
     </div>
   );
 };

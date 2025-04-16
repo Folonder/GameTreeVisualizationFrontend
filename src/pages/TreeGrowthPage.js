@@ -1,4 +1,4 @@
-// src/pages/TreeGrowthPage.js (обновленный)
+// src/pages/TreeGrowthPage.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import TreeView from '../components/tree/TreeView';
@@ -18,6 +18,7 @@ const TreeGrowthPage = () => {
     const [currentStepIndex, setCurrentStepIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackSpeed, setPlaybackSpeed] = useState(1);
+    const [changes, setChanges] = useState(null); // Отслеживание изменений между шагами
     
     const playbackTimerRef = useRef(null);
     
@@ -68,33 +69,131 @@ const TreeGrowthPage = () => {
         };
     }, [sessionId, turnNumber]);
     
+    // Создаем карту узлов для отслеживания изменений
+    const createNodeMap = (tree) => {
+        const map = new Map();
+        
+        const processNode = (node) => {
+            if (!node) return;
+            
+            // Сохраняем узел в карте по его ID
+            map.set(node.id, {
+                visits: node.statistics?.numVisits || 0,
+                state: node.state,
+                hasChildren: node.children && node.children.length > 0
+            });
+            
+            // Рекурсивно обрабатываем все дочерние узлы
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(processNode);
+            }
+        };
+        
+        processNode(tree);
+        return map;
+    };
+    
+    // Вычисляем изменения между двумя шагами
+    const calculateChanges = (currentTree, previousStepMap) => {
+        if (!previousStepMap) return { newNodes: [], updatedNodes: [] };
+        
+        const changes = {
+            newNodes: [], // Новые узлы
+            updatedNodes: [] // Узлы с изменившимися статистиками
+        };
+        
+        const processNode = (node) => {
+            if (!node) return;
+            
+            // Проверяем, существовал ли этот узел в предыдущем шаге
+            if (!previousStepMap.has(node.id)) {
+                // Новый узел
+                changes.newNodes.push(node.id);
+            } else {
+                // Узел существовал ранее, проверяем изменения
+                const prevNodeInfo = previousStepMap.get(node.id);
+                const currentVisits = node.statistics?.numVisits || 0;
+                
+                if (currentVisits > prevNodeInfo.visits) {
+                    // Количество посещений увеличилось
+                    changes.updatedNodes.push({
+                        id: node.id,
+                        prevVisits: prevNodeInfo.visits,
+                        currentVisits: currentVisits,
+                        change: currentVisits - prevNodeInfo.visits
+                    });
+                }
+            }
+            
+            // Рекурсивно обрабатываем дочерние узлы
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(processNode);
+            }
+        };
+        
+        processNode(currentTree);
+        return changes;
+    };
+    
+    // Обновляем отслеживание изменений при изменении текущего шага
+    useEffect(() => {
+        if (growthSteps.length === 0 || currentStepIndex < 0) return;
+        
+        const currentStepData = growthSteps[currentStepIndex];
+        if (!currentStepData || !currentStepData.tree) return;
+        
+        // Всегда сравниваем с предыдущим по индексу шагом, а не с тем, который был показан перед этим
+        // Это гарантирует корректную работу при отмотке назад
+        if (currentStepIndex > 0) {
+            const previousStepIndex = currentStepIndex - 1;
+            const previousStepData = growthSteps[previousStepIndex];
+            
+            if (previousStepData && previousStepData.tree) {
+                // Используем карту узлов предыдущего шага по порядку (не зависимо от того, показывался он или нет)
+                const previousStepMap = createNodeMap(previousStepData.tree);
+                const currentChanges = calculateChanges(currentStepData.tree, previousStepMap);
+                
+                console.log(`Changes from step ${previousStepIndex} to ${currentStepIndex}:`, currentChanges);
+                console.log('New nodes:', currentChanges.newNodes.length);
+                console.log('Updated nodes:', currentChanges.updatedNodes.length);
+                
+                setChanges(currentChanges);
+            } else {
+                setChanges(null);
+            }
+        } else {
+            // Для первого шага нет предыдущего, поэтому изменений нет
+            setChanges(null);
+        }
+    }, [currentStepIndex, growthSteps]);
+    
     // Recursive function to ensure all nodes have statistics
     // Удостоверимся, что у каждого узла есть необходимые поля статистики
-const ensureNodeStatistics = (node) => {
-    if (!node) return;
-    
-    // Ensure node has statistics object
-    if (!node.statistics) {
-        node.statistics = { numVisits: 0, relativeVisits: 0, statisticsForActions: [] };
-    } else if (typeof node.statistics.numVisits !== 'number') {
-        node.statistics.numVisits = 0;
-    }
-    
-    // Ensure relative visits property exists
-    if (typeof node.statistics.relativeVisits !== 'number') {
-        node.statistics.relativeVisits = 0;
-    }
-    
-    // Ensure statisticsForActions is an array
-    if (!Array.isArray(node.statistics.statisticsForActions)) {
-        node.statistics.statisticsForActions = [];
-    }
-    
-    // Process children recursively
-    if (node.children && Array.isArray(node.children)) {
-        node.children.forEach(ensureNodeStatistics);
-    }
-};
+    const ensureNodeStatistics = (node) => {
+        if (!node) return;
+        
+        // Ensure node has statistics object
+        if (!node.statistics) {
+            node.statistics = { numVisits: 0, relativeVisits: 0, statisticsForActions: [] };
+        } else if (typeof node.statistics.numVisits !== 'number') {
+            node.statistics.numVisits = 0;
+        }
+        
+        // Ensure relative visits property exists
+        if (typeof node.statistics.relativeVisits !== 'number') {
+            node.statistics.relativeVisits = 0;
+        }
+        
+        // Ensure statisticsForActions is an array
+        if (!Array.isArray(node.statistics.statisticsForActions)) {
+            node.statistics.statisticsForActions = [];
+        }
+        
+        // Process children recursively
+        if (node.children && Array.isArray(node.children)) {
+            node.children.forEach(ensureNodeStatistics);
+        }
+    };
     
     // Handle playback
     useEffect(() => {
@@ -153,6 +252,49 @@ const ensureNodeStatistics = (node) => {
         navigate('/');
     };
     
+    // Функция для просмотра текущего дерева в Grid
+    // Функция для просмотра текущего дерева в Grid - исправленная версия
+const handleViewInGrid = () => {
+    if (growthSteps.length > 0 && currentStepIndex >= 0 && currentStepIndex < growthSteps.length) {
+        const currentTree = growthSteps[currentStepIndex].tree;
+        
+        // Добавляем дополнительную обработку для обеспечения правильной структуры
+        const processTree = (node, depth = 0) => {
+            if (!node) return node;
+            
+            // Убедимся, что узел имеет все необходимые поля
+            if (!node.id) {
+                node.id = `node-${depth}-${Math.random().toString(36).substr(2, 9)}`;
+            }
+            
+            // Явно устанавливаем глубину
+            node.depth = depth;
+            
+            // Рекурсивно обрабатываем детей
+            if (node.children && Array.isArray(node.children)) {
+                node.children = node.children.map(child => processTree(child, depth + 1));
+            }
+            
+            return node;
+        };
+        
+        // Обрабатываем дерево, чтобы убедиться, что у всех узлов есть ID и depth
+        const processedTree = processTree(currentTree);
+        
+        // Логируем что сохраняем
+        console.log("Saving tree to localStorage:", processedTree);
+        
+        // Сохраняем текущее дерево в localStorage для использования в GridPage
+        // Используем ключ 'treeData' для совместимости
+        localStorage.setItem('treeData', JSON.stringify(processedTree));
+        
+        // Открываем Grid в новом окне
+        window.open('/grid', '_blank');
+    } else {
+        console.error("No tree data available to view in grid");
+    }
+};
+    
     if (loading) {
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50">
@@ -191,6 +333,15 @@ const ensureNodeStatistics = (node) => {
                 </div>
                 
                 <div className="flex space-x-2">
+                    {/* Добавляем кнопку для просмотра в Grid */}
+                    <Button
+                        onClick={handleViewInGrid}
+                        variant="primary"
+                        className="bg-green-600 hover:bg-green-700"
+                    >
+                        View in Grid
+                    </Button>
+                    
                     <Button
                         onClick={handleBackToTurns}
                         variant="secondary"
@@ -277,7 +428,7 @@ const ensureNodeStatistics = (node) => {
                         </div>
                     </div>
                     
-                    {/* Step information */}
+                    {/* Step information and changes info */}
                     <div className="bg-gray-100 px-4 py-2 text-sm">
                         <div className="flex items-center justify-between">
                             <div>
@@ -286,10 +437,24 @@ const ensureNodeStatistics = (node) => {
                                 <span className="font-medium">Step:</span> {currentStep.stepNumber}
                                 {' | '}
                                 <span className="font-medium">
-                                    {currentStep.patchNumber === -1 ? 'Final State' : `Growth #${currentStep.patchNumber}`}
+                                    {currentStep.patchNumber === 'final' ? 'Final State' : `Growth #${currentStep.patchNumber}`}
                                 </span>
                                 {' | '}
                                 <span className="font-medium">Visits:</span> {currentStep.tree?.statistics?.numVisits || 0}
+                                
+                                {/* Отображаем информацию об изменениях */}
+                                {changes && (
+                                    <>
+                                        {' | '}
+                                        <span className="font-medium text-green-600">
+                                            New nodes: {changes.newNodes.length}
+                                        </span>
+                                        {' | '}
+                                        <span className="font-medium text-blue-600">
+                                            Updated nodes: {changes.updatedNodes.length}
+                                        </span>
+                                    </>
+                                )}
                             </div>
                             <div>
                                 <span className="font-medium">Total Nodes:</span> {calculateNodeCount(currentStep.tree)}
@@ -302,6 +467,8 @@ const ensureNodeStatistics = (node) => {
                         <TreeView 
                             data={currentStep.tree}
                             onError={(err) => setError(err.message)}
+                            changes={changes}
+                            highlightChanges={true}
                         />
                     </div>
                 </div>

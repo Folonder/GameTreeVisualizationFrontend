@@ -1,6 +1,4 @@
-// src/components/tree/TreeRenderer.js - Исправленная версия для перетаскивания узлов
-// Основной момент: обновлен код обработки пользовательских позиций
-
+// src/components/tree/TreeRenderer.js
 import { useCallback, useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { getNodeIdentifier } from '../../utils/treeUtils';
@@ -26,9 +24,10 @@ export const useTreeRenderer = ({
     calculateNodePercentage,
     savedTransform,
     updateTransform,
-    // Добавляем пользовательские позиции
     customNodePositions,
-    setCustomNodePositions
+    setCustomNodePositions,
+    changes,
+    highlightChanges
 }) => {
     const svgRef = useRef(null);
     const mainGroupRef = useRef(null);
@@ -121,18 +120,111 @@ export const useTreeRenderer = ({
                 }
             });
             
-            // Функция для определения адаптивного радиуса узлов
-            const getNodeRadius = (d) => {
-                const baseRadius = Math.max(
-                    TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS,
-                    Math.min(
-                        Math.sqrt(d.data.statistics?.numVisits || 0) / 2,
-                        TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS
-                    )
-                );
+            // Добавляем фильтры для эффектов анимации
+            const defs = svg.append('defs');
+            
+            // Фильтр свечения для новых узлов
+            const newNodeFilter = defs.append('filter')
+                .attr('id', 'glow-new-node')
+                .attr('x', '-50%')
+                .attr('y', '-50%')
+                .attr('width', '200%')
+                .attr('height', '200%');
                 
-                // Для маленьких деревьев увеличиваем размер узлов
-                return isSmallTree ? baseRadius * 1.5 : baseRadius;
+            newNodeFilter.append('feGaussianBlur')
+                .attr('stdDeviation', '3')
+                .attr('result', 'blur');
+                
+            newNodeFilter.append('feComposite')
+                .attr('in', 'SourceGraphic')
+                .attr('in2', 'blur')
+                .attr('operator', 'over');
+            
+            // Фильтр пульсации для обновленных узлов
+            const updatedNodeFilter = defs.append('filter')
+                .attr('id', 'pulse-updated-node')
+                .attr('x', '-50%')
+                .attr('y', '-50%')
+                .attr('width', '200%')
+                .attr('height', '200%');
+                
+            const animBlur = updatedNodeFilter.append('feGaussianBlur')
+                .attr('in', 'SourceGraphic')
+                .attr('stdDeviation', '1')
+                .attr('result', 'blur');
+                
+            // Добавляем анимацию для обновленных узлов
+            animBlur.append('animate')
+                .attr('attributeName', 'stdDeviation')
+                .attr('values', '1;2;1')
+                .attr('dur', '1.5s')
+                .attr('repeatCount', '3');
+            
+            // Функция для определения адаптивного радиуса узлов
+            // Функция для определения адаптивного радиуса узлов
+const getNodeRadius = (d) => {
+    // Получаем максимальное количество посещений в дереве
+    const maxVisits = allNodes.reduce((max, node) => {
+        const visits = node.data.statistics?.numVisits || 0;
+        return Math.max(max, visits);
+    }, 1); // Минимум 1, чтобы избежать деления на ноль
+    
+    // Получаем количество посещений текущего узла
+    const visits = d.data.statistics?.numVisits || 0;
+    
+    // Если это листовой узел или узел с малым количеством посещений
+    if ((!d.children || d.children.length === 0) && visits < maxVisits * 0.1) {
+        // Малый узел - уменьшенный размер
+        const sizeRatio = Math.max(0.2, visits / (maxVisits * 0.1));
+        const minSmallRadius = TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS * 0.8;
+        return minSmallRadius + (TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS * 0.5 - minSmallRadius) * sizeRatio;
+    }
+    
+    // Для малопосещаемых внутренних узлов - средний размер
+    if (visits < maxVisits * 0.3) {
+        const sizeRatio = Math.max(0.4, visits / (maxVisits * 0.3));
+        const mediumRadius = TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS * 0.7;
+        return TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS + (mediumRadius - TREE_CONSTANTS.DIMENSIONS.NODE.MIN_RADIUS) * sizeRatio;
+    }
+    
+    // Для хорошо исследованных узлов - большой размер
+    const sizeRatio = Math.max(0.6, visits / maxVisits);
+    return TREE_CONSTANTS.DIMENSIONS.NODE.MAX_RADIUS * sizeRatio;
+};
+            
+            // Helper для определения стиля узла, основанного на изменениях
+            const getNodeChangeStyle = (d) => {
+                if (!highlightChanges || !changes) return {};
+                
+                const nodeId = d.data.id || getNodeIdentifier(d);
+                
+                // Проверяем, является ли узел новым
+                if (changes.newNodes && changes.newNodes.includes(nodeId)) {
+                    return {
+                        stroke: '#4caf50', // Зеленый цвет для новых узлов
+                        strokeWidth: 4,
+                        filter: 'url(#glow-new-node)',
+                        strokeOpacity: 1
+                    };
+                }
+                
+                // Проверяем, был ли узел обновлен
+                const updatedNode = changes.updatedNodes && 
+                    changes.updatedNodes.find(node => node.id === nodeId);
+                
+                if (updatedNode) {
+                    // Вычисляем интенсивность подсветки на основе изменения
+                    const changeRatio = Math.min(1, updatedNode.change / 20); // Ограничиваем до 1
+                    return {
+                        stroke: '#2196f3', // Синий цвет для обновленных узлов
+                        strokeWidth: 2 + 2 * changeRatio, // Увеличиваем толщину линии
+                        strokeDasharray: updatedNode.change > 10 ? '5,2' : '', // Пунктирная линия для больших обновлений
+                        filter: changeRatio > 0.5 ? 'url(#pulse-updated-node)' : '',
+                        strokeOpacity: 1
+                    };
+                }
+                
+                return {};
             };
             
             // Filter nodes using recursive visibility check
@@ -216,9 +308,16 @@ export const useTreeRenderer = ({
                 .each(function(d) {
                     const nodeState = nodeStates.get(d);
                     const visits = d.data.statistics?.numVisits || 0;
-                    const style = getNodeStyle(nodeState, visits);
+                    const baseStyle = getNodeStyle(nodeState, visits);
+                    const changeStyle = getNodeChangeStyle(d);
                     
-                    Object.entries(style).forEach(([key, value]) => {
+                    // Применяем базовые стили
+                    Object.entries(baseStyle).forEach(([key, value]) => {
+                        d3.select(this).style(key, value);
+                    });
+                    
+                    // Применяем стили изменений, если они есть
+                    Object.entries(changeStyle).forEach(([key, value]) => {
                         d3.select(this).style(key, value);
                     });
                 })
@@ -260,6 +359,28 @@ export const useTreeRenderer = ({
                     .attr('font-weight', 'bold')
                     .attr('fill', '#ffffff')
                     .text(`${Math.round(percentage)}%`);
+                    
+                // Добавляем метки для изменений
+                if (highlightChanges && changes) {
+                    const nodeId = d.data.id || getNodeIdentifier(d);
+                    const updatedNode = changes.updatedNodes && 
+                        changes.updatedNodes.find(node => node.id === nodeId);
+                    
+                    if (updatedNode) {
+                        // Добавляем метку с изменением количества посещений
+                        node.append('text')
+                            .attr('class', 'change-label')
+                            .attr('x', radius + 5)
+                            .attr('y', -5)
+                            .attr('text-anchor', 'start')
+                            .attr('dominant-baseline', 'middle')
+                            .attr('font-size', 10)
+                            .attr('font-weight', 'bold')
+                            .attr('fill', '#2196f3')
+                            .text(`+${updatedNode.change}`)
+                            .style('filter', 'url(#pulse-updated-node)');
+                    }
+                }
             });
 
             // Для символа "+" также создаем отдельную группу с оригинальным стилем
@@ -288,6 +409,54 @@ export const useTreeRenderer = ({
                     })
                     .text('+');
             });
+            
+            // Добавляем анимацию для новых узлов - пульсация размера
+            if (highlightChanges && changes && changes.newNodes && changes.newNodes.length > 0) {
+                nodeGroups.filter(d => {
+                    const nodeId = d.data.id || getNodeIdentifier(d);
+                    return changes.newNodes.includes(nodeId);
+                }).each(function() {
+                    const node = d3.select(this);
+                    const circle = node.select('circle');
+                    
+                    // Анимация пульсации
+                    circle
+                        .attr('r', function() {
+                            return parseFloat(d3.select(this).attr('r')) * 1.2;
+                        })
+                        .transition()
+                        .duration(800)
+                        .attr('r', function() {
+                            return parseFloat(d3.select(this).attr('r')) / 1.2;
+                        })
+                        .transition()
+                        .duration(800)
+                        .attr('r', function() {
+                            return parseFloat(d3.select(this).attr('r')) * 1.1;
+                        })
+                        .transition()
+                        .duration(800)
+                        .attr('r', function() {
+                            return parseFloat(d3.select(this).attr('r')) / 1.1;
+                        });
+                    
+                    // Добавляем метку "New"
+                    node.append('text')
+                        .attr('class', 'new-node-label')
+                        .attr('x', function() {
+                            const radius = parseFloat(circle.attr('r'));
+                            return radius + 5;
+                        })
+                        .attr('y', 5)
+                        .attr('text-anchor', 'start')
+                        .attr('dominant-baseline', 'middle')
+                        .attr('font-size', 10)
+                        .attr('font-weight', 'bold')
+                        .attr('fill', '#4caf50')
+                        .text('NEW')
+                        .style('filter', 'url(#glow-new-node)');
+                });
+            }
             
             // Add invisible larger circle for better dragging and context menu
             // Добавляем в конце, чтобы он был поверх всех других элементов
@@ -340,7 +509,9 @@ export const useTreeRenderer = ({
         savedTransform,
         updateTransform,
         customNodePositions,
-        setCustomNodePositions
+        setCustomNodePositions,
+        changes,
+        highlightChanges
     ]);
 
     // Run rendering when dependencies change
@@ -351,7 +522,9 @@ export const useTreeRenderer = ({
         data, 
         hiddenChildrenIds, 
         overrideFilterIds, 
-        filteredChildrenIds
+        filteredChildrenIds,
+        changes, // Добавляем changes как зависимость, чтобы перерисовывать при изменении
+        highlightChanges
     ]);
 
     return {

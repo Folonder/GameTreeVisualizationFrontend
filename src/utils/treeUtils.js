@@ -45,6 +45,8 @@ export const getNodeIdentifier = (node) => {
  * @returns {Object} Корневой узел
  */
 export const findRootNode = (node) => {
+    if (!node) return null;
+    
     let root = node;
     while (root.parent) {
         root = root.parent;
