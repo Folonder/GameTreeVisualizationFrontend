@@ -448,12 +448,13 @@ const TreeGrowthPage = () => {
             <div className="h-[calc(100vh-4rem)]">
                 <div className="h-full flex flex-col">
                     {/* Playback controls */}
-                    <div className="bg-white border-b flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-4">
+                    <div className="bg-white border-b flex items-center justify-between px-4 py-2">
+                        <div className="flex items-center space-x-3">
                             <Button
                                 onClick={handlePlayPause}
                                 variant="primary"
                                 disabled={isTransitioning}
+                                className="px-3 py-1.5 text-sm"
                             >
                                 {isPlaying ? 'Pause' : 'Play'}
                             </Button>
@@ -462,16 +463,17 @@ const TreeGrowthPage = () => {
                                 onClick={handleReset}
                                 variant="secondary"
                                 disabled={isTransitioning}
+                                className="px-3 py-1.5 text-sm"
                             >
                                 Reset
                             </Button>
                             
                             <div className="flex items-center space-x-2">
-                                <span className="text-sm text-gray-600">Speed:</span>
+                                <span className="text-xs text-gray-600">Speed:</span>
                                 <select
                                     value={playbackSpeed}
                                     onChange={(e) => handleSpeedChange(Number(e.target.value))}
-                                    className="border border-gray-300 rounded px-2 py-1 text-sm"
+                                    className="border border-gray-300 rounded px-2 py-1 text-xs"
                                     disabled={isTransitioning}
                                 >
                                     <option value={0.5}>0.5x</option>
@@ -480,19 +482,13 @@ const TreeGrowthPage = () => {
                                     <option value={5}>5x</option>
                                 </select>
                             </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-4">
-                            <div className="text-sm text-gray-600">
-                                Turn {currentStep.turnNumber}: Step {currentStep.stepIndex + 1}
-                            </div>
                             
                             <div className="flex items-center space-x-2">
                                 <Button
                                     onClick={handleStepBackward}
                                     disabled={currentFlatIndex === 0 || isTransitioning}
                                     variant="secondary"
-                                    className="px-3 py-1"
+                                    className="px-2 py-1 text-sm"
                                 >
                                     &lt;
                                 </Button>
@@ -501,20 +497,24 @@ const TreeGrowthPage = () => {
                                     onClick={handleStepForward}
                                     disabled={currentFlatIndex >= totalFlatSteps - 1 || isTransitioning}
                                     variant="secondary"
-                                    className="px-3 py-1"
+                                    className="px-2 py-1 text-sm"
                                 >
                                     &gt;
                                 </Button>
                             </div>
                         </div>
+                        
+                        <div className="text-xs text-gray-600">
+                            Turn {currentStep.turnNumber}: Step {currentStep.stepIndex + 1}
+                        </div>
                     </div>
                     
                     {/* Объединенная полоса прокрутки для всех итераций */}
-                    <div className="bg-white border-b px-4 pb-4">
-                        <div className="w-full relative pt-8"> {/* Увеличенный отступ сверху для меток */}
+                    <div className="bg-white border-b px-4 pb-2">
+                        <div className="w-full relative pt-2"> 
                             <div className="relative">
-                                {/* Сначала метки итераций */}
-                                <div className="absolute -top-8 left-0 right-0 h-6 z-10">
+                                {/* Метки итераций */}
+                                <div className="absolute -top-3 left-0 right-0 h-3 z-10">
                                     {turnMarkers.map((marker, index) => {
                                         const position = (marker.index / (totalFlatSteps - 1)) * 100;
                                         return (
@@ -523,31 +523,26 @@ const TreeGrowthPage = () => {
                                                 className="absolute top-0 flex flex-col items-center"
                                                 style={{ left: `${position}%` }}
                                             >
-                                                <div className="h-4 w-1 bg-blue-500"></div>
-                                                <span className="text-xs text-blue-600">Turn {marker.turnNumber}</span>
+                                                <div className="h-2 w-1 bg-purple-400"></div>
+                                                <span className="text-xs text-purple-600">Turn {marker.turnNumber}</span>
                                             </div>
                                         );
                                     })}
                                 </div>
                                 
-                                {/* Затем кликабельный ползунок */}
                                 <div 
-                                    className="relative w-full h-8 bg-gray-200 rounded-lg cursor-pointer mb-2 mt-2"
+                                    className="relative w-full h-4 bg-gray-200 rounded-lg cursor-pointer mb-1 mt-1"
                                     onClick={(e) => {
                                         if (isTransitioning) return;
-                                        // Вычисляем позицию клика относительно слайдера
                                         const rect = e.currentTarget.getBoundingClientRect();
                                         const x = e.clientX - rect.left;
                                         const percentage = x / rect.width;
-                                        // Вычисляем новый индекс
                                         const newIndex = Math.round(percentage * (totalFlatSteps - 1));
-                                        // Устанавливаем новый индекс
                                         handleFlatIndexChange(newIndex);
                                     }}
                                 >
-                                    {/* Дополнительно добавляем метки ходов непосредственно на ползунке */}
                                     {turnMarkers.map((marker, index) => {
-                                        if (index === 0) return null; // Пропускаем первую метку (начало)
+                                        if (index === 0) return null;
                                         const position = (marker.index / (totalFlatSteps - 1)) * 100;
                                         return (
                                             <div 
@@ -558,22 +553,19 @@ const TreeGrowthPage = () => {
                                         );
                                     })}
                                     
-                                    {/* Индикатор прогресса */}
                                     <div 
                                         className="absolute top-0 left-0 h-full bg-blue-500 rounded-l-lg"
                                         style={{ width: `${overallProgress}%` }}
                                     ></div>
                                     
-                                    {/* Маркер текущей позиции */}
                                     <div 
-                                        className="absolute top-0 h-8 w-4 bg-blue-600 rounded-full shadow border-2 border-white z-20"
+                                        className="absolute top-0 h-4 w-4 bg-blue-600 rounded-full shadow border-2 border-white z-20"
                                         style={{ 
                                             left: `calc(${overallProgress}% - 2px)`,
                                             display: isTransitioning ? 'none' : 'block'
                                         }}
                                     ></div>
                                     
-                                    {/* Скрытый нативный ползунок для доступности */}
                                     <input
                                         type="range"
                                         min={0}
@@ -585,16 +577,16 @@ const TreeGrowthPage = () => {
                                     />
                                 </div>
                                 
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs text-gray-500">Start</span>
-                                    <span className="text-xs text-gray-500">Overall Progress: {Math.round(overallProgress)}%</span>
-                                    <span className="text-xs text-gray-500">End</span>
+                                <div className="flex justify-between items-center text-xs text-gray-500">
+                                    <span>Start</span>
+                                    <span>Overall Progress: {Math.round(overallProgress)}%</span>
+                                    <span>End</span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    {/* Информация о текущем шаге */}
+                    {/* Информация о текущем шаге без блока с изменениями */}
                     <div className="bg-gray-100 px-4 py-2 text-sm">
                         <div className="flex items-center justify-between">
                             <div>
@@ -607,19 +599,6 @@ const TreeGrowthPage = () => {
                                 </span>
                                 {' | '}
                                 <span className="font-medium">Visits:</span> {currentStep.tree?.statistics?.numVisits || 0}
-                                
-                                {changes && (
-                                    <>
-                                        {' | '}
-                                        <span className="font-medium text-green-600">
-                                            New nodes: {changes.newNodes.length}
-                                        </span>
-                                        {' | '}
-                                        <span className="font-medium text-blue-600">
-                                            Updated nodes: {changes.updatedNodes.length}
-                                        </span>
-                                    </>
-                                )}
                             </div>
                             <div>
                                 <span className="font-medium">Total Nodes:</span> {calculateNodeCount(currentStep.tree)}

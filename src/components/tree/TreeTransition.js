@@ -86,11 +86,12 @@ const TreeTransition = ({
         
         // Перезапускаем анимацию
         if (animationRef.current) {
-            const { animateNodeRemoval, animateNodeToRoot } = animationRef.current;
+            const { animateNodeRemoval, animateNodeToRoot, animateNewRootText } = animationRef.current;
             
             // Перезапускаем анимации
             animateNodeRemoval();
             animateNodeToRoot();
+            animateNewRootText();
         }
         
         // Запускаем новый таймер
@@ -320,24 +321,47 @@ const TreeTransition = ({
             .duration(500)
             .style('opacity', 1);
         
-        // Текст "New Root" (увеличенный)
-        selectedNodeGroup.append('text')
-            .attr('x', 15) // Немного дальше от узла
-            .attr('y', 0)
-            .attr('text-anchor', 'start')
-            .attr('dominant-baseline', 'middle')
-            .attr('font-size', '16px') // Увеличенный размер
-            .attr('font-weight', 'bold')
-            .attr('fill', '#047857')
-            .text('New Root')
-            .style('opacity', 0)
-            .transition()
-            .duration(500)
-            .style('opacity', 1);
-        
         // Получаем позиции узлов
         const rootPosition = { x: previousNodes[0].x, y: previousNodes[0].y };
         const selectedPosition = { x: selectedNode.x, y: selectedNode.y };
+        
+        // Добавляем текст "New Root", который будет перемещаться от старого корня к новому
+        // Создаем группу для текста "New Root" и начинаем её у старого корня
+        const newRootTextGroup = g.append('g')
+            .attr('class', 'new-root-text')
+            .attr('transform', `translate(${rootPosition.y},${rootPosition.x})`)
+            .style('opacity', 0);
+        
+        // Добавляем текст "New Root" в группу
+        newRootTextGroup.append('text')
+            .attr('x', 15)
+            .attr('y', 0)
+            .attr('text-anchor', 'start')
+            .attr('dominant-baseline', 'middle')
+            .attr('font-size', '16px')
+            .attr('font-weight', 'bold')
+            .attr('fill', '#047857')
+            .text('New Root');
+            
+        // Функция анимации текста "New Root" от старого корня к новому корню
+        const animateNewRootText = () => {
+            // Если выбранный узел и есть корень, то аннотация не нужна
+            if (selectedNode === previousNodes[0]) {
+                newRootTextGroup.remove();
+                return;
+            }
+            
+            // Сначала делаем текст видимым
+            newRootTextGroup
+                .transition()
+                .duration(500)
+                .style('opacity', 1)
+                // Затем перемещаем его к выбранному узлу
+                .transition()
+                .delay(800)
+                .duration(1200)
+                .attr('transform', `translate(${selectedPosition.y},${selectedPosition.x})`);
+        };
         
         // Исправляем направление анимации - от корня к выбранному узлу
         if (selectedNode !== previousNodes[0]) {
@@ -415,14 +439,16 @@ const TreeTransition = ({
                 .style('stroke-width', 2);
         };
         
-        // Запустить обе анимации
+        // Запустить все анимации
         animateNodeRemoval();
         animateNodeToRoot();
+        animateNewRootText();
         
         // Сохраняем функции анимации для возможности перезапуска
         animationRef.current = {
             animateNodeRemoval,
-            animateNodeToRoot
+            animateNodeToRoot,
+            animateNewRootText
         };
         
         // Запускаем таймер для отображения прогресса
@@ -450,105 +476,101 @@ const TreeTransition = ({
     
     return (
         <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center">
-            <div className="flex w-full h-full">
-                {/* Левая панель с информацией */}
-                <div className="w-1/3 p-4 bg-gray-50 shadow-lg overflow-auto flex flex-col">
-                    {/* Элементы управления анимацией (перемещены наверх) */}
-                    <div className="bg-white p-3 rounded-lg shadow mb-4">
-                        <div className="flex justify-between gap-2 mb-2">
-                            <button 
-                                className={`flex-1 px-3 py-1 rounded font-medium text-sm ${isPaused ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}`}
-                                onClick={handlePauseResume}
-                            >
-                                {isPaused ? 'Resume' : 'Pause'}
-                            </button>
-                            
-                            <button 
-                                className="flex-1 px-3 py-1 bg-blue-500 text-white rounded font-medium text-sm"
-                                onClick={handleReplay}
-                            >
-                                Replay
-                            </button>
-                            
-                            <button 
-                                className="flex-1 px-3 py-1 bg-green-600 text-white rounded font-medium text-sm"
-                                onClick={handleContinue}
-                                disabled={!isPaused && progress < 1}
-                            >
-                                Continue →
-                            </button>
-                        </div>
+            {/* Левая панель с информацией - теперь абсолютно позиционирована */}
+            <div className="absolute left-0 top-0 z-10 w-1/4 max-w-xs h-full bg-gray-50 shadow-lg overflow-auto flex flex-col p-4">
+                {/* Элементы управления анимацией (перемещены наверх) */}
+                <div className="bg-white p-3 rounded-lg shadow mb-4">
+                    <div className="flex justify-between gap-2 mb-2">
+                        <button 
+                            className={`flex-1 px-3 py-1 rounded font-medium text-sm ${isPaused ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}`}
+                            onClick={handlePauseResume}
+                        >
+                            {isPaused ? 'Resume' : 'Pause'}
+                        </button>
                         
-                        <div className="flex items-center justify-between text-xs text-gray-600">
-                            <span>Turn {currentTurn} → Turn {nextTurn}</span>
-                            <span>Progress: {Math.round(progress * 100)}%</span>
-                        </div>
+                        <button 
+                            className="flex-1 px-3 py-1 bg-blue-500 text-white rounded font-medium text-sm"
+                            onClick={handleReplay}
+                        >
+                            Replay
+                        </button>
                         
-                        <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden mt-1">
-                            <div 
-                                className="bg-green-500 h-full transition-all duration-100 ease-out"
-                                style={{ width: `${progress * 100}%` }}
-                            ></div>
-                        </div>
+                        <button 
+                            className="flex-1 px-3 py-1 bg-green-600 text-white rounded font-medium text-sm"
+                            onClick={handleContinue}
+                            disabled={!isPaused && progress < 1}
+                        >
+                            Continue →
+                        </button>
                     </div>
                     
-                    <h2 className="text-lg font-bold mb-2 text-gray-800">Tree Pruning</h2>
-                    
-                    <div className="bg-white p-3 rounded-lg shadow mb-4">
-                        <h3 className="text-base font-bold mb-2 text-green-700">New Root Node</h3>
-                        <div className="mb-3">
-                            <div className="text-sm font-semibold mb-1">ID:</div>
-                            <div className="bg-gray-100 p-2 rounded text-sm font-mono overflow-auto whitespace-normal break-all mb-2" id="node-id-text">
-                                {selectedNodeInfo.id}
-                            </div>
-                            
-                            <div className="text-sm font-semibold mb-1">State:</div>
-                            <div className="bg-gray-100 p-2 rounded text-sm font-mono overflow-auto whitespace-normal break-all mb-2" id="node-state-text">
-                                {selectedNodeInfo.state}
-                            </div>
-                            
-                            <div className="text-sm font-semibold mb-1">Visits:</div>
-                            <div className="bg-gray-100 p-2 rounded text-sm mb-2" id="node-visits-text">
-                                {selectedNodeInfo.visits}
-                            </div>
-                        </div>
-                        
-                        <div className="flex justify-end mt-1">
-                            <button 
-                                className="text-blue-600 text-xs underline mr-2"
-                                onClick={() => {
-                                    navigator.clipboard.writeText(selectedNodeInfo.id);
-                                    alert('Node ID copied to clipboard!');
-                                }}
-                            >
-                                Copy ID
-                            </button>
-                            <button 
-                                className="text-blue-600 text-xs underline"
-                                onClick={() => {
-                                    navigator.clipboard.writeText(selectedNodeInfo.state);
-                                    alert('Node State copied to clipboard!');
-                                }}
-                            >
-                                Copy State
-                            </button>
-                        </div>
+                    <div className="flex items-center justify-between text-xs text-gray-600">
+                        <span>Turn {currentTurn} → Turn {nextTurn}</span>
+                        <span>Progress: {Math.round(progress * 100)}%</span>
                     </div>
                     
-                    <div className="mt-auto text-xs text-gray-500 text-center bg-white p-2 rounded-lg shadow">
-                        <p>Use mouse wheel to zoom and drag to pan the visualization</p>
-                        <p className="mt-1">Current zoom: {Math.round(zoomScale * 100)}%</p>
+                    <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden mt-1">
+                        <div 
+                            className="bg-green-500 h-full transition-all duration-100 ease-out"
+                            style={{ width: `${progress * 100}%` }}
+                        ></div>
                     </div>
                 </div>
                 
-                {/* Правая панель с визуализацией */}
-                <div className="w-2/3 flex items-center justify-center relative">
-                    <svg 
-                        ref={svgRef} 
-                        className="w-full h-full max-h-screen"
-                    />
+                <h2 className="text-lg font-bold mb-2 text-gray-800">Tree Pruning</h2>
+                
+                <div className="bg-white p-3 rounded-lg shadow mb-4">
+                    <h3 className="text-base font-bold mb-2 text-green-700">New Root Node</h3>
+                    <div className="mb-3">
+                        <div className="text-sm font-semibold mb-1">ID:</div>
+                        <div className="bg-gray-100 p-2 rounded text-sm font-mono overflow-auto whitespace-normal break-all mb-2" id="node-id-text">
+                            {selectedNodeInfo.id}
+                        </div>
+                        
+                        <div className="text-sm font-semibold mb-1">State:</div>
+                        <div className="bg-gray-100 p-2 rounded text-sm font-mono overflow-auto whitespace-normal break-all mb-2" id="node-state-text">
+                            {selectedNodeInfo.state}
+                        </div>
+                        
+                        <div className="text-sm font-semibold mb-1">Visits:</div>
+                        <div className="bg-gray-100 p-2 rounded text-sm mb-2" id="node-visits-text">
+                            {selectedNodeInfo.visits}
+                        </div>
+                    </div>
+                    
+                    <div className="flex justify-end mt-1">
+                        <button 
+                            className="text-blue-600 text-xs underline mr-2"
+                            onClick={() => {
+                                navigator.clipboard.writeText(selectedNodeInfo.id);
+                                alert('Node ID copied to clipboard!');
+                            }}
+                        >
+                            Copy ID
+                        </button>
+                        <button 
+                            className="text-blue-600 text-xs underline"
+                            onClick={() => {
+                                navigator.clipboard.writeText(selectedNodeInfo.state);
+                                alert('Node State copied to clipboard!');
+                            }}
+                        >
+                            Copy State
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="mt-auto text-xs text-gray-500 text-center bg-white p-2 rounded-lg shadow">
+                    <p>Use mouse wheel to zoom and drag to pan the visualization</p>
+                    <p className="mt-1">Current zoom: {Math.round(zoomScale * 100)}%</p>
                 </div>
             </div>
+            
+            {/* SVG для визуализации занимает весь доступный контейнер */}
+            <svg 
+                ref={svgRef} 
+                className="w-full h-full max-h-screen"
+            />
         </div>
     );
 };
