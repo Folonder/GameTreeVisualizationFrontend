@@ -1,44 +1,44 @@
 // src/components/tree/TreeView.js
-import React from 'react';
+import React, { useState } from 'react';
 import { useGraphInteraction } from '../../hooks/useGraphInteraction';
 import { useTreeFiltering } from '../../hooks/useTreeFiltering';
 import { useNodeState } from '../../hooks/useNodeState';
 import { useContextMenuHandler } from '../../hooks/useContextMenuHandler';
-import { useTreeRenderer } from './TreeRenderer';
-import { calculateNodePercentage } from '../../utils/treeUtils';
+import TreeVisualizer from './TreeVisualizer';
 import FilterControls from './FilterControls';
 import ContextMenu from './ContextMenu';
 import LoadingIndicator from '../common/LoadingIndicator';
 import { ErrorMessage } from '../common/ErrorMessage';
 
-/**
- * Main component for tree visualization
- * Combines filtering, rendering, and interaction logic
- */
 const TreeView = ({ 
     data, 
     onError, 
-    changes, // Добавляем параметр с информацией об изменениях
-    highlightChanges = false // Параметр для включения подсветки изменений
+    changes,
+    highlightChanges = false
 }) => {
-    // Set up graph interaction (dragging, panning, zooming)
+    const [isLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [stats, setStats] = useState({
+        totalNodes: 0,
+        visibleNodes: 0,
+        maxDepth: 0
+    });
+    
+    // Set up graph interaction
     const { 
         setupNodeDrag, 
         setupGraphPan, 
-        savedTransform, 
-        updateTransform,
         customNodePositions,
         setCustomNodePositions,
         resetNodePosition
     } = useGraphInteraction();
     
-    // Set up tree filtering logic
+    // Set up tree filtering
     const {
         filters,
         hiddenChildrenIds,
         filteredChildrenIds,
         overrideFilterIds,
-        isFilteredByFilters,
         toggleNodeExpansion,
         toggleFilterOverride,
         applyFilters,
@@ -53,7 +53,7 @@ const TreeView = ({
         overrideFilterIds
     );
     
-    // Set up context menu handling
+    // Set up context menu
     const {
         contextMenu,
         handleContextMenu,
@@ -67,60 +67,44 @@ const TreeView = ({
         toggleFilterOverride
     );
     
-    // Set up tree rendering
-    const {
-        svgRef,
-        renderTree,
-        isLoading,
-        error,
-        stats
-    } = useTreeRenderer({
-        data,
-        onError,
-        shouldShowNode,
-        getNodeState,
-        hiddenChildrenIds,
-        filteredChildrenIds,
-        overrideFilterIds,
-        toggleNodeExpansion,
-        toggleFilterOverride,
-        handleContextMenu,
-        setupNodeDrag,
-        setupGraphPan,
-        calculateNodePercentage,
-        savedTransform,
-        updateTransform,
-        customNodePositions,
-        setCustomNodePositions,
-        changes,
-        highlightChanges
-    });
+    // Handlers
+    const handleError = (err) => {
+        setError(err.message || String(err));
+        if (onError) onError(err);
+    };
+    
+    const handleStatsUpdate = (newStats) => {
+        setStats(newStats);
+    };
+    
+    const handleResetFilters = () => {
+        resetFilters();
+        setCustomNodePositions(new Map());
+    };
 
+    // Handle errors
     if (error) {
         return (
             <ErrorMessage
                 message={error}
-                onRetry={renderTree}
-                onReset={resetFilters}
+                onReset={handleResetFilters}
             />
         );
     }
 
+    // Handle loading state
     if (isLoading) {
         return <LoadingIndicator message="Processing tree data..." />;
     }
 
     return (
         <div className="flex flex-col h-screen overflow-hidden">
+            {/* Control panel */}
             <div className="flex-none h-12 bg-white border-b flex items-center px-4">
                 <FilterControls
                     currentFilters={filters}
                     onApplyFilters={applyFilters}
-                    onResetFilters={() => {
-                        resetFilters();
-                        // Сбрасываем пользовательские позиции при сбросе фильтров
-                        setCustomNodePositions(new Map());
-                    }}
+                    onResetFilters={handleResetFilters}
                     maxDepth={stats.maxDepth}
                     totalNodes={stats.totalNodes}
                 />
@@ -128,34 +112,43 @@ const TreeView = ({
                     Showing {stats.visibleNodes} of {stats.totalNodes} nodes
                 </div>
                 
-                {/* Debug information about hidden nodes */}
-                <div className="ml-4 text-xs text-gray-400">
-                    Hidden manually: {hiddenChildrenIds.size} | 
-                    Hidden by filters: {filteredChildrenIds.size} |
-                    Filter overrides: {overrideFilterIds.size}
-                </div>
-                
-                {/* Информация об изменениях */}
+                {/* Changes information */}
                 {changes && highlightChanges && (
                     <div className="ml-auto flex items-center space-x-4">
                         <div className="flex items-center">
                             <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-                            <span className="text-xs">Новые узлы: {changes.newNodes.length}</span>
+                            <span className="text-xs">New nodes: {changes.newNodes.length}</span>
                         </div>
                         <div className="flex items-center">
                             <div className="w-3 h-3 rounded-full bg-blue-500 mr-1"></div>
-                            <span className="text-xs">Обновленные узлы: {changes.updatedNodes.length}</span>
+                            <span className="text-xs">Updated nodes: {changes.updatedNodes.length}</span>
                         </div>
                     </div>
                 )}
             </div>
+
+            {/* Tree visualization area */}
             <div className="flex-1 relative">
-                <svg 
-                    ref={svgRef} 
-                    className="w-full h-full"
-                    style={{ background: 'white' }}
-                    onContextMenu={(e) => e.preventDefault()}
+                <TreeVisualizer
+                    data={data}
+                    shouldShowNode={shouldShowNode}
+                    getNodeState={getNodeState}
+                    hiddenChildrenIds={hiddenChildrenIds}
+                    filteredChildrenIds={filteredChildrenIds}
+                    overrideFilterIds={overrideFilterIds}
+                    toggleNodeExpansion={toggleNodeExpansion}
+                    toggleFilterOverride={toggleFilterOverride}
+                    handleContextMenu={handleContextMenu}
+                    setupNodeDrag={setupNodeDrag}
+                    setupGraphPan={setupGraphPan}
+                    customNodePositions={customNodePositions}
+                    changes={changes}
+                    highlightChanges={highlightChanges}
+                    onError={handleError}
+                    onStatsUpdate={handleStatsUpdate}
                 />
+                
+                {/* Context menu */}
                 {contextMenu.visible && (
                     <ContextMenu
                         {...contextMenu}
