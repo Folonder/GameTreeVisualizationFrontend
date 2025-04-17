@@ -1,7 +1,6 @@
 // src/services/api.js
 const API_URL =  process.env.REACT_APP_API_URL || 'http://localhost/api';
 
-// Обработчик ответов от API
 async function handleResponse(response) {
     const contentType = response.headers.get('content-type');
     
@@ -30,7 +29,6 @@ async function handleResponse(response) {
     return await response.text();
 }
 
-// API для работы с сессиями игр
 export const sessionApi = {
     async checkSession(sessionId) {
         const response = await fetch(`${API_URL}GameSession/exists`, {
@@ -64,4 +62,32 @@ export const sessionApi = {
         });
         return handleResponse(response);
     },
+    
+    async getAllTurnsGrowth(sessionId) {
+        try {
+            const turns = await this.getAvailableTurns(sessionId);
+            
+            if (!turns || turns.length === 0) {
+                throw new Error('No turns available');
+            }
+            
+            const allTurnsData = [];
+            
+            for (const turnNumber of turns) {
+                const turnGrowth = await this.getTurnGrowth(sessionId, turnNumber);
+                
+                if (turnGrowth && turnGrowth.length > 0) {
+                    allTurnsData.push({
+                        turnNumber,
+                        steps: turnGrowth
+                    });
+                }
+            }
+            
+            return allTurnsData;
+        } catch (error) {
+            console.error('Error fetching all turns growth:', error);
+            throw error;
+        }
+    }
 };

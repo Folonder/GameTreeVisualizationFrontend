@@ -3,14 +3,25 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getNodeIdentifier, calculateNodePercentageFromRoot, findRootNode } from '../../utils/treeUtils';
 import { calculateNodePath, formatPathForUrl } from '../../utils/gridUtils';
 
-const Statistics = ({ data, node }) => {
+const Statistics = ({ data, node, onClose }) => {
     if (!data?.statistics) return null;
     const stats = data.statistics;
     
     const percentFromRoot = (calculateNodePercentageFromRoot(node)).toFixed(2);
 
     return (
-        <div className="absolute left-full top-0 ml-2 bg-white rounded shadow-lg border p-4 min-w-[300px]">
+        <div className="absolute left-full top-0 ml-2 bg-white rounded shadow-lg border p-4 min-w-[300px] z-50">
+            <div className="flex justify-end mb-2">
+                <button 
+                    onClick={onClose} 
+                    className="text-gray-500 hover:text-gray-700"
+                    title="Close Statistics"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
             <div className="space-y-3">
                 <div>
                     <h3 className="text-sm font-medium text-gray-500 mb-2">Basic Statistics</h3>
@@ -65,6 +76,7 @@ const ContextMenu = ({
 }) => {
     const [showStats, setShowStats] = useState(false);
     const menuRef = useRef(null);
+    const [menuPosition, setMenuPosition] = useState({ x, y });
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -79,6 +91,7 @@ const ContextMenu = ({
         };
     }, [onClose]);
 
+    // Position the menu to ensure it's fully visible
     useEffect(() => {
         if (!menuRef.current) return;
 
@@ -87,19 +100,20 @@ const ContextMenu = ({
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
 
-        let menuX = x;
-        let menuY = y;
+        let newX = x;
+        let newY = y;
 
+        // Adjust horizontal position
         if (x + rect.width > viewportWidth) {
-            menuX = viewportWidth - rect.width - 10;
+            newX = viewportWidth - rect.width - 10;
         }
 
+        // Adjust vertical position
         if (y + rect.height > viewportHeight) {
-            menuY = viewportHeight - rect.height - 10;
+            newY = y - rect.height - 10;  // Position above the click point
         }
 
-        menu.style.left = `${menuX}px`;
-        menu.style.top = `${menuY}px`;
+        setMenuPosition({ x: newX, y: newY });
     }, [x, y]);
 
     const hasChildren = node?.children && node.children.length > 0;
@@ -129,47 +143,44 @@ const ContextMenu = ({
     }
 
     const handleViewInGrid = () => {
-        if (node) {
-            try {
-                const preparedNode = { ...node };
-                
-                if (node.data) {
-                    preparedNode.data = { ...node.data };
-                    
-                    if (!preparedNode.id && preparedNode.data.id) {
-                        preparedNode.id = preparedNode.data.id;
-                    }
-                    
-                    if (!preparedNode.state && preparedNode.data.state) {
-                        preparedNode.state = preparedNode.data.state;
-                    }
-                    
-                    if (!preparedNode.statistics && preparedNode.data.statistics) {
-                        preparedNode.statistics = preparedNode.data.statistics;
-                    }
-                    
-                    if (!preparedNode.children && preparedNode.data.children) {
-                        preparedNode.children = preparedNode.data.children;
-                    }
-                }
-                
-                const root = findRootNode(node);
-                localStorage.setItem('treeData', JSON.stringify(root.data ? root.data : root));
-                
-                const nodePath = calculateNodePath(node);
-                
-                if (nodePath && nodePath.length > 0) {
-                    const pathString = formatPathForUrl(nodePath);
-                    window.open(`/grid-path/${pathString}`, '_blank');
-                } else {
-                    window.open('/grid', '_blank');
-                }
-            } catch (error) {
-                console.error("Error navigating to grid view:", error);
+        if (!node) return;
+
+        try {
+            // Prepare root node data for localStorage
+            const root = findRootNode(node);
+            const rootData = root.data ? root.data : root;
+            
+            // Ensure all necessary data is present
+            const preparedData = {
+                ...rootData,
+                id: rootData.id || getNodeIdentifier(root),
+                state: rootData.state || '',
+                statistics: rootData.statistics || {},
+                children: rootData.children || []
+            };
+
+            // Save tree data to localStorage
+            localStorage.setItem('treeData', JSON.stringify(preparedData));
+
+            // Calculate and prepare node path
+            const nodePath = calculateNodePath(node);
+            
+            if (nodePath && nodePath.length > 0) {
+                const pathString = formatPathForUrl(nodePath);
+                window.open(`/grid-path/${pathString}`, '_blank');
+            } else {
                 window.open('/grid', '_blank');
             }
-            onClose();
+        } catch (error) {
+            console.error("Error navigating to grid view:", error);
+            window.open('/grid', '_blank');
         }
+        
+        onClose();
+    };
+
+    const handleToggleStatistics = () => {
+        setShowStats(prev => !prev);
     };
 
     const showToggleButton = hasChildren;
@@ -179,21 +190,35 @@ const ContextMenu = ({
             ref={menuRef}
             className="fixed z-50 bg-white rounded shadow-lg border"
             style={{
-                left: `${x}px`,
-                top: `${y}px`
+                left: `${menuPosition.x}px`,
+                top: `${menuPosition.y}px`
             }}
             onClick={e => e.stopPropagation()}
         >
-            <div className="p-2 min-w-[200px]">
+            <div className="p-2 min-w-[250px] relative">
                 <div className="relative">
                     <button 
-                        className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded"
-                        onMouseEnter={() => setShowStats(true)}
-                        onMouseLeave={() => setShowStats(false)}
+                        className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded flex justify-between items-center"
+                        onClick={handleToggleStatistics}
                     >
-                        View Statistics
+                        <span>View Statistics</span>
+                        {showStats ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+                            </svg>
+                        ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        )}
                     </button>
-                    {showStats && <Statistics data={node?.data} node={node} />}
+                    {showStats && (
+                        <Statistics 
+                            data={node?.data} 
+                            node={node} 
+                            onClose={() => setShowStats(false)} 
+                        />
+                    )}
                 </div>
 
                 <div className="my-1 h-px bg-gray-200"></div>

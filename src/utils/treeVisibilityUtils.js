@@ -33,6 +33,8 @@ export const processNodeVisibility = (data, shouldShowNode, getNodeState) => {
 };
 
 export const createNodeMap = (tree) => {
+    if (!tree) return new Map();
+    
     const map = new Map();
     
     const processNode = (node) => {
@@ -54,7 +56,7 @@ export const createNodeMap = (tree) => {
 };
 
 export const calculateChanges = (currentTree, previousStepMap) => {
-    if (!previousStepMap) return { newNodes: [], updatedNodes: [] };
+    if (!previousStepMap || previousStepMap.size === 0) return { newNodes: [], updatedNodes: [] };
     
     const changes = {
         newNodes: [],
@@ -63,6 +65,11 @@ export const calculateChanges = (currentTree, previousStepMap) => {
     
     const processNode = (node) => {
         if (!node) return;
+        
+        if (!node.id) {
+            // Узел без ID не может быть сравнен
+            return;
+        }
         
         if (!previousStepMap.has(node.id)) {
             changes.newNodes.push(node.id);

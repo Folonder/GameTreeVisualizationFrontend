@@ -1,4 +1,4 @@
-// src/pages/SessionInputPage.js
+// src/pages/SessionInputPage.js (обновленный)
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/common/Card';
@@ -33,8 +33,8 @@ const SessionInputPage = () => {
                 return;
             }
             
-            // Navigate to the tree growth player
-            navigate(`/turns/${sessionId}`);
+            // Навигация прямо на страницу роста дерева, без выбора хода
+            navigate(`/tree-growth/${sessionId}`);
         } catch (err) {
             setError(`Error: ${err.message}`);
             console.error('Error checking session:', err);
