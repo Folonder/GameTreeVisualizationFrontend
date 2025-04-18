@@ -448,145 +448,149 @@ const TreeGrowthPage = () => {
             <div className="h-[calc(100vh-4rem)]">
                 <div className="h-full flex flex-col">
                     {/* Playback controls */}
-                    <div className="bg-white border-b flex items-center justify-between px-4 py-2">
-                        <div className="flex items-center space-x-3">
-                            <Button
-                                onClick={handlePlayPause}
-                                variant="primary"
-                                disabled={isTransitioning}
-                                className="px-3 py-1.5 text-sm"
-                            >
-                                {isPlaying ? 'Pause' : 'Play'}
-                            </Button>
-                            
-                            <Button
-                                onClick={handleReset}
-                                variant="secondary"
-                                disabled={isTransitioning}
-                                className="px-3 py-1.5 text-sm"
-                            >
-                                Reset
-                            </Button>
-                            
-                            <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-600">Speed:</span>
-                                <select
-                                    value={playbackSpeed}
-                                    onChange={(e) => handleSpeedChange(Number(e.target.value))}
-                                    className="border border-gray-300 rounded px-2 py-1 text-xs"
-                                    disabled={isTransitioning}
-                                >
-                                    <option value={0.5}>0.5x</option>
-                                    <option value={1}>1x</option>
-                                    <option value={2}>2x</option>
-                                    <option value={5}>5x</option>
-                                </select>
-                            </div>
-                            
-                            <div className="flex items-center space-x-2">
-                                <Button
-                                    onClick={handleStepBackward}
-                                    disabled={currentFlatIndex === 0 || isTransitioning}
-                                    variant="secondary"
-                                    className="px-2 py-1 text-sm"
-                                >
-                                    &lt;
-                                </Button>
-                                
-                                <Button
-                                    onClick={handleStepForward}
-                                    disabled={currentFlatIndex >= totalFlatSteps - 1 || isTransitioning}
-                                    variant="secondary"
-                                    className="px-2 py-1 text-sm"
-                                >
-                                    &gt;
-                                </Button>
-                            </div>
-                        </div>
-                        
-                        <div className="text-xs text-gray-600">
-                            Turn {currentStep.turnNumber}: Step {currentStep.stepIndex + 1}
-                        </div>
-                    </div>
+                    {/* Playback controls */}
+<div className="bg-white border-b flex items-center justify-between px-4 py-2">
+    <div className="flex items-center space-x-3">
+        <Button
+            onClick={handlePlayPause}
+            variant="primary"
+            disabled={isTransitioning}
+            className="px-3 py-1.5 text-sm"
+        >
+            {isPlaying ? 'Pause' : 'Play'}
+        </Button>
+        
+        <Button
+            onClick={handleReset}
+            variant="secondary"
+            disabled={isTransitioning}
+            className="px-3 py-1.5 text-sm"
+        >
+            Reset
+        </Button>
+        
+        <div className="flex items-center space-x-2">
+            <span className="text-xs text-gray-600">Speed:</span>
+            <select
+                value={playbackSpeed}
+                onChange={(e) => handleSpeedChange(Number(e.target.value))}
+                className="border border-gray-300 rounded px-2 py-1 text-xs"
+                disabled={isTransitioning}
+            >
+                <option value={0.5}>0.5x</option>
+                <option value={1}>1x</option>
+                <option value={2}>2x</option>
+                <option value={5}>5x</option>
+            </select>
+        </div>
+    </div>
+    
+    <div className="flex items-center space-x-3">
+        <div className="text-xs text-gray-600">
+            Turn {currentStep.turnNumber}: Step {currentStep.stepIndex + 1}
+        </div>
+        
+        <div className="flex items-center space-x-2">
+            <Button
+                onClick={handleStepBackward}
+                disabled={currentFlatIndex === 0 || isTransitioning}
+                variant="secondary"
+                className="px-2 py-1 text-sm"
+            >
+                &lt;
+            </Button>
+            
+            <Button
+                onClick={handleStepForward}
+                disabled={currentFlatIndex >= totalFlatSteps - 1 || isTransitioning}
+                variant="secondary"
+                className="px-2 py-1 text-sm"
+            >
+                &gt;
+            </Button>
+        </div>
+    </div>
+</div>
                     
                     {/* Объединенная полоса прокрутки для всех итераций */}
                     <div className="bg-white border-b px-4 pb-2">
-                        <div className="w-full relative pt-2"> 
-                            <div className="relative">
-                                {/* Метки итераций */}
-                                <div className="absolute -top-3 left-0 right-0 h-3 z-10">
-                                    {turnMarkers.map((marker, index) => {
-                                        const position = (marker.index / (totalFlatSteps - 1)) * 100;
-                                        return (
-                                            <div 
-                                                key={index} 
-                                                className="absolute top-0 flex flex-col items-center"
-                                                style={{ left: `${position}%` }}
-                                            >
-                                                <div className="h-2 w-1 bg-purple-400"></div>
-                                                <span className="text-xs text-purple-600">Turn {marker.turnNumber}</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                
-                                <div 
-                                    className="relative w-full h-4 bg-gray-200 rounded-lg cursor-pointer mb-1 mt-1"
-                                    onClick={(e) => {
-                                        if (isTransitioning) return;
-                                        const rect = e.currentTarget.getBoundingClientRect();
-                                        const x = e.clientX - rect.left;
-                                        const percentage = x / rect.width;
-                                        const newIndex = Math.round(percentage * (totalFlatSteps - 1));
-                                        handleFlatIndexChange(newIndex);
-                                    }}
-                                >
-                                    {turnMarkers.map((marker, index) => {
-                                        if (index === 0) return null;
-                                        const position = (marker.index / (totalFlatSteps - 1)) * 100;
-                                        return (
-                                            <div 
-                                                key={`slider-${index}`} 
-                                                className="absolute top-0 h-full w-1 bg-white z-10"
-                                                style={{ left: `${position}%` }}
-                                            />
-                                        );
-                                    })}
-                                    
-                                    <div 
-                                        className="absolute top-0 left-0 h-full bg-blue-500 rounded-l-lg"
-                                        style={{ width: `${overallProgress}%` }}
-                                    ></div>
-                                    
-                                    <div 
-                                        className="absolute top-0 h-4 w-4 bg-blue-600 rounded-full shadow border-2 border-white z-20"
-                                        style={{ 
-                                            left: `calc(${overallProgress}% - 2px)`,
-                                            display: isTransitioning ? 'none' : 'block'
-                                        }}
-                                    ></div>
-                                    
-                                    <input
-                                        type="range"
-                                        min={0}
-                                        max={totalFlatSteps - 1}
-                                        value={currentFlatIndex}
-                                        onChange={(e) => handleFlatIndexChange(parseInt(e.target.value))}
-                                        className="absolute inset-0 opacity-0 cursor-pointer w-full"
-                                        disabled={isTransitioning}
-                                    />
-                                </div>
-                                
-                                <div className="flex justify-between items-center text-xs text-gray-500">
-                                    <span>Start</span>
-                                    <span>Overall Progress: {Math.round(overallProgress)}%</span>
-                                    <span>End</span>
-                                </div>
-                            </div>
+    <div className="w-full relative pt-1 pl-2 pr-2"> 
+        <div className="relative">
+            {/* Метки итераций */}
+            <div className="absolute -top-4 left-0 right-0 h-2 z-10 pointer-events-none">
+                {turnMarkers.map((marker, index) => {
+                    if (index === 0) return null;
+                    const position = (marker.index / (totalFlatSteps - 1)) * 100;
+                    return (
+                        <div 
+                            key={index} 
+                            className="absolute top-0 flex flex-col items-center transform -translate-x-1/2"
+                            style={{ left: `${position}%` }}
+                        >
+                            <span className="text-xs text-amber-600 mb-0.5">Turn {marker.turnNumber}</span>
+                            <div className="h-1.5 w-1 bg-amber-500 rounded"></div>
                         </div>
-                    </div>
+                    );
+                })}
+            </div>
+            
+            <div 
+                className="relative w-full h-3 bg-gray-200 rounded-lg cursor-pointer"
+                onClick={(e) => {
+                    if (isTransitioning) return;
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const percentage = x / rect.width;
+                    const newIndex = Math.round(percentage * (totalFlatSteps - 1));
+                    handleFlatIndexChange(newIndex);
+                }}
+            >
+                {turnMarkers.map((marker, index) => {
+                    if (index === 0) return null;
+                    const position = (marker.index / (totalFlatSteps - 1)) * 100;
+                    return (
+                        <div 
+                            key={`slider-${index}`} 
+                            className="absolute top-0 h-full w-0.5 bg-gray-300 z-10 transform -translate-x-1/2"
+                            style={{ left: `${position}%` }}
+                        />
+                    );
+                })}
+                
+                <div 
+                    className="absolute top-0 left-0 h-full bg-blue-500 rounded-l-lg"
+                    style={{ width: `${overallProgress}%` }}
+                ></div>
+                
+                <div 
+                    className="absolute top-0 h-3 w-3 bg-blue-600 rounded-full shadow border-2 border-white z-20"
+                    style={{ 
+                        left: `calc(${overallProgress}% - 1.5px)`,
+                        display: isTransitioning ? 'none' : 'block'
+                    }}
+                ></div>
+                
+                <input
+                    type="range"
+                    min={0}
+                    max={totalFlatSteps - 1}
+                    value={currentFlatIndex}
+                    onChange={(e) => handleFlatIndexChange(parseInt(e.target.value))}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full"
+                    disabled={isTransitioning}
+                />
+            </div>
+            
+            <div className="flex justify-between items-center text-xs text-gray-500 mt-1">
+                <span>Start</span>
+                <span>Overall Progress: {Math.round(overallProgress)}%</span>
+                <span>End</span>
+            </div>
+        </div>
+    </div>
+</div>
                     
-                    {/* Информация о текущем шаге без блока с изменениями */}
+                    {/* Информация о текущем шаге */}
                     <div className="bg-gray-100 px-4 py-2 text-sm">
                         <div className="flex items-center justify-between">
                             <div>
@@ -599,6 +603,19 @@ const TreeGrowthPage = () => {
                                 </span>
                                 {' | '}
                                 <span className="font-medium">Visits:</span> {currentStep.tree?.statistics?.numVisits || 0}
+                                
+                                {changes && (
+                                    <>
+                                        {' | '}
+                                        <span className="font-medium text-green-600">
+                                            New nodes: {changes.newNodes.length}
+                                        </span>
+                                        {' | '}
+                                        <span className="font-medium text-blue-600">
+                                            Updated nodes: {changes.updatedNodes.length}
+                                        </span>
+                                    </>
+                                )}
                             </div>
                             <div>
                                 <span className="font-medium">Total Nodes:</span> {calculateNodeCount(currentStep.tree)}

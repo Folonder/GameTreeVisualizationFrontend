@@ -285,6 +285,12 @@ const ContextMenu = ({
                             <span>Leaf node (no children)</span>
                         </div>
                     )}
+
+                    {/* Display nodeId */}
+                    <div className="mt-2 text-xs text-gray-500">
+                        <div className="mb-1">Node ID:</div>
+                        <span>{nodeId}</span>
+                    </div>
                 </div>
             </div>
         </div>
