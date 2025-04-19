@@ -15,7 +15,6 @@ const TreeTransition = ({
     const svgRef = useRef(null);
     const gRef = useRef(null);
     const [progress, setProgress] = useState(0);
-    const [isPaused, setIsPaused] = useState(false);
     const [zoomScale, setZoomScale] = useState(1);
     const [selectedNodeInfo, setSelectedNodeInfo] = useState({
         id: '',
@@ -34,83 +33,62 @@ const TreeTransition = ({
         return () => {
             if (timerRef.current) {
                 clearInterval(timerRef.current);
+                timerRef.current = null;
             }
         };
     }, []);
     
-    const handlePauseResume = () => {
-        if (isPaused) {
-            // Продолжаем анимацию
-            startTimeRef.current = Date.now() - elapsedTimeRef.current;
-            
-            // Обновляем таймер
-            timerRef.current = setInterval(() => {
-                const elapsed = Date.now() - startTimeRef.current;
-                const newProgress = Math.min(1, elapsed / duration);
-                elapsedTimeRef.current = elapsed;
-                setProgress(newProgress);
-                
-                if (newProgress >= 1) {
-                    clearInterval(timerRef.current);
-                    // Не завершаем переход автоматически в режиме паузы
-                }
-            }, 50);
-        } else {
-            // Пауза анимации
-            clearInterval(timerRef.current);
+    // Останавливает все текущие d3-анимации на SVG
+    const stopAllD3Animations = () => {
+        if (svgRef.current) {
+            d3.select(svgRef.current).selectAll('*').interrupt();
         }
-        
-        setIsPaused(!isPaused);
     };
     
+    // Переход к следующему шагу
     const handleContinue = () => {
-        if (isPaused || progress >= 1) {
-            setIsPaused(false);
-            setTimeout(() => {
-                onTransitionComplete();
-            }, 500);
-        }
-    };
-    
-    // Функция для перезапуска анимации
-    const handleReplay = () => {
-        // Очищаем текущие таймеры
+        // Очищаем любой текущий таймер
         if (timerRef.current) {
             clearInterval(timerRef.current);
+            timerRef.current = null;
         }
+        
+        stopAllD3Animations();
+        
+        // Устанавливаем прогресс в 100% для визуального завершения
+        setProgress(1);
+        
+        // Вызываем callback завершения
+        setTimeout(() => {
+            onTransitionComplete();
+        }, 100);
+    };
+    
+    // Полный перезапуск анимации
+    const handleRestart = () => {
+        // Сначала полностью останавливаем все таймеры и анимации
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+        
+        stopAllD3Animations();
         
         // Сбрасываем состояние
         setProgress(0);
-        setIsPaused(false);
         elapsedTimeRef.current = 0;
         
-        // Перезапускаем анимацию
-        if (animationRef.current) {
-            const { animateNodeRemoval, animateNodeToRoot, animateNewRootText } = animationRef.current;
+        // Полностью перерисовываем SVG
+        if (svgRef.current) {
+            // Полностью очищаем все содержимое SVG
+            const svg = d3.select(svgRef.current);
+            svg.selectAll("*").remove();
             
-            // Перезапускаем анимации
-            animateNodeRemoval();
-            animateNodeToRoot();
-            animateNewRootText();
+            // Заново инициализируем визуализацию
+            initializeVisualization(svg, previousTree, nextTree);
         }
-        
-        // Запускаем новый таймер
-        startTimeRef.current = Date.now();
-        timerRef.current = setInterval(() => {
-            const elapsed = Date.now() - startTimeRef.current;
-            const newProgress = Math.min(1, elapsed / duration);
-            elapsedTimeRef.current = elapsed;
-            setProgress(newProgress);
-            
-            if (newProgress >= 1) {
-                clearInterval(timerRef.current);
-                if (!isPaused) {
-                    // Не завершаем автоматически после воспроизведения
-                }
-            }
-        }, 50);
     };
-    
+
     // Настройка d3.zoom
     const setupZoom = (svg, g) => {
         const zoom = d3.zoom()
@@ -130,24 +108,17 @@ const TreeTransition = ({
         svg.call(zoom.transform, initialTransform);
     };
     
-    useEffect(() => {
-        if (!previousTree || !nextTree || !svgRef.current) {
-            onTransitionComplete();
-            return;
-        }
-        
-        const svg = d3.select(svgRef.current);
-        svg.selectAll("*").remove();
-        
+    // Функция для инициализации визуализации
+    const initializeVisualization = (svg, previousTree, nextTree) => {
         svg.attr('width', '100%')
            .attr('height', '100%')
            .attr('viewBox', `0 0 ${TREE_CONSTANTS.DIMENSIONS.WIDTH} ${TREE_CONSTANTS.DIMENSIONS.HEIGHT}`);
         
-        // Добавляем фон
+        // Добавляем фон (полностью непрозрачный)
         svg.append('rect')
             .attr('width', '100%')
             .attr('height', '100%')
-            .attr('fill', 'rgba(255, 255, 255, 0.9)');
+            .attr('fill', '#ffffff');
         
         // Основная группа для элементов
         const g = svg.append('g')
@@ -311,15 +282,13 @@ const TreeTransition = ({
         
         // Корона для будущего корня (уменьшенная)
         selectedNodeGroup.append('path')
+            .attr('class', 'crown')
             .attr('d', 'M0,-15 L5,-5 L15,-10 L10,0 L15,10 L5,5 L0,15 L-5,5 L-15,10 L-10,0 L-15,-10 L-5,-5 Z')
             .attr('fill', 'rgba(250, 204, 21, 0.7)')
             .attr('stroke', '#ca8a04')
             .attr('stroke-width', 0.5) // Уменьшенная толщина
             .attr('transform', 'scale(0.4)') // Уменьшенный размер
-            .style('opacity', 0)
-            .transition()
-            .duration(500)
-            .style('opacity', 1);
+            .style('opacity', 0);
         
         // Получаем позиции узлов
         const rootPosition = { x: previousNodes[0].x, y: previousNodes[0].y };
@@ -363,12 +332,34 @@ const TreeTransition = ({
                 .attr('transform', `translate(${selectedPosition.y},${selectedPosition.x})`);
         };
         
-        // Исправляем направление анимации - от корня к выбранному узлу
+        // Стрелка и линия от корня к новому корню
         if (selectedNode !== previousNodes[0]) {
+            // Добавляем зеленую линию соединения между корнями
+            const rootLine = g.append('path')
+                .attr('class', 'root-connection')
+                .attr('d', () => {
+                    // Прямая линия между корнями
+                    return `M${rootPosition.y},${rootPosition.x} L${selectedPosition.y},${selectedPosition.x}`;
+                })
+                .style('fill', 'none')
+                .style('stroke', '#047857')  // Зеленая линия
+                .style('stroke-width', 2)
+                .style('stroke-dasharray', '5,3')
+                .style('opacity', 0);
+                
+            // Анимируем появление линии
+            const animateConnection = () => {
+                rootLine
+                    .transition()
+                    .delay(600)
+                    .duration(800)
+                    .style('opacity', 1);
+            };
+            
             // Создаем изогнутую стрелку от корня к выбранному узлу
             const arrow = g.append('g').attr('class', 'root-arrow');
             
-            // Путь стрелки - ИСПРАВЛЕНО направление
+            // Путь стрелки
             const arrowPath = arrow.append('path')
                 .attr('d', () => {
                     // Создаем путь с помощью кривой Безье
@@ -384,24 +375,41 @@ const TreeTransition = ({
                 })
                 .style('fill', 'none')
                 .style('stroke', '#047857')
-                .style('stroke-width', 1)
+                .style('stroke-width', 2)
                 .style('stroke-dasharray', '5,3')
-                .style('opacity', 0)
-                .transition()
-                .delay(800)
-                .duration(600)
-                .style('opacity', 1);
+                .style('opacity', 0);
             
             // Наконечник стрелки - на конце (у выбранного узла)
             const arrowhead = arrow.append('polygon')
                 .attr('points', '0,-3 6,0 0,3')
                 .attr('fill', '#047857')
                 .attr('transform', `translate(${selectedPosition.y},${selectedPosition.x}) rotate(90)`)
-                .style('opacity', 0)
-                .transition()
-                .delay(1400)
-                .duration(300)
-                .style('opacity', 1);
+                .style('opacity', 0);
+                
+            // Функция для запуска анимации стрелки
+            const animateArrow = () => {
+                arrowPath
+                    .transition()
+                    .delay(800)
+                    .duration(600)
+                    .style('opacity', 1);
+                    
+                arrowhead
+                    .transition()
+                    .delay(1400)
+                    .duration(300)
+                    .style('opacity', 1);
+            };
+            
+            // Сохраняем для возможного перезапуска
+            animationRef.current = {
+                ...animationRef.current, 
+                animateArrow,
+                animateConnection
+            };
+            
+            // Запускаем анимацию соединения
+            animateConnection();
         }
         
         // Анимация затухания отсекаемых узлов
@@ -425,8 +433,13 @@ const TreeTransition = ({
         const animateNodeToRoot = () => {
             if (selectedNode === previousNodes[0]) return; // Уже корень
             
-            // В данном случае, мы не двигаем узел, так как это противоречит
-            // визуальной логике. Вместо этого, мы просто добавляем подсветку
+            // Показываем корону
+            selectedNodeGroup.select('.crown')
+                .transition()
+                .duration(500)
+                .style('opacity', 1);
+            
+            // Добавляем подсветку выбранного узла
             selectedNodeGroup.select('circle')
                 .transition()
                 .delay(1400)
@@ -439,17 +452,18 @@ const TreeTransition = ({
                 .style('stroke-width', 2);
         };
         
-        // Запустить все анимации
-        animateNodeRemoval();
-        animateNodeToRoot();
-        animateNewRootText();
-        
         // Сохраняем функции анимации для возможности перезапуска
         animationRef.current = {
+            ...animationRef.current,
             animateNodeRemoval,
             animateNodeToRoot,
             animateNewRootText
         };
+        
+        // Запускаем все анимации
+        animateNodeRemoval();
+        animateNodeToRoot();
+        animateNewRootText();
         
         // Запускаем таймер для отображения прогресса
         startTimeRef.current = Date.now();
@@ -463,42 +477,68 @@ const TreeTransition = ({
             
             if (newProgress >= 1) {
                 clearInterval(timerRef.current);
-                if (!isPaused) {
-                    // Не завершаем автоматически
-                }
+                timerRef.current = null;
+                // Явно устанавливаем прогресс в 100%
+                setProgress(1);
             }
         }, 50);
+    };
+    
+    // Инициализация визуализации при первом рендере
+    useEffect(() => {
+        // Очищаем все существующие таймеры и анимации при пересоздании компонента
+        if (timerRef.current) {
+            clearInterval(timerRef.current);
+            timerRef.current = null;
+        }
+        
+        // Сбрасываем состояние анимации
+        setProgress(0);
+        elapsedTimeRef.current = 0;
+        
+        if (!previousTree || !nextTree || !svgRef.current) {
+            onTransitionComplete();
+            return;
+        }
+        
+        const svg = d3.select(svgRef.current);
+        svg.selectAll("*").remove();
+        
+        initializeVisualization(svg, previousTree, nextTree);
         
         return () => {
-            clearInterval(timerRef.current);
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+                timerRef.current = null;
+            }
+            stopAllD3Animations();
         };
-    }, [previousTree, nextTree, duration, onTransitionComplete, currentTurn, nextTurn, isPaused]);
+    }, [previousTree, nextTree, duration, onTransitionComplete]);
     
     return (
-        <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center">
+        <div className="absolute inset-0 bg-white flex items-center justify-center">
             {/* Левая панель с информацией - теперь абсолютно позиционирована */}
             <div className="absolute left-0 top-0 z-10 w-1/4 max-w-xs h-full bg-gray-50 shadow-lg overflow-auto flex flex-col p-4">
                 {/* Элементы управления анимацией (перемещены наверх) */}
                 <div className="bg-white p-3 rounded-lg shadow mb-4">
                     <div className="flex justify-between gap-2 mb-2">
                         <button 
-                            className={`flex-1 px-3 py-1 rounded font-medium text-sm ${isPaused ? 'bg-green-500 text-white' : 'bg-yellow-500 text-white'}`}
-                            onClick={handlePauseResume}
+                            className="flex-1 px-3 py-1 bg-blue-500 text-white rounded font-medium text-sm hover:bg-blue-600"
+                            onClick={handleRestart}
+                            title="Перезапустить анимацию с начала"
                         >
-                            {isPaused ? 'Resume' : 'Pause'}
+                            Restart
                         </button>
                         
                         <button 
-                            className="flex-1 px-3 py-1 bg-blue-500 text-white rounded font-medium text-sm"
-                            onClick={handleReplay}
-                        >
-                            Replay
-                        </button>
-                        
-                        <button 
-                            className="flex-1 px-3 py-1 bg-green-600 text-white rounded font-medium text-sm"
+                            className={`flex-1 px-3 py-1 rounded font-medium text-sm ${
+                                progress >= 1 
+                                ? 'bg-green-600 text-white hover:bg-green-700' 
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                            }`}
                             onClick={handleContinue}
-                            disabled={!isPaused && progress < 1}
+                            disabled={progress < 1}
+                            title="Продолжить к следующему шагу"
                         >
                             Continue →
                         </button>
