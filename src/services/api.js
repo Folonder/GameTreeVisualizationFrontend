@@ -89,5 +89,14 @@ export const sessionApi = {
             console.error('Error fetching all turns growth:', error);
             throw error;
         }
+    },
+    async getAllSessions() {
+        const response = await fetch(`${API_URL}GameSession/sessions`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        return handleResponse(response);
     }
 };

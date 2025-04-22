@@ -1,5 +1,5 @@
-// src/pages/SessionInputPage.js (обновленный)
-import React, { useState } from 'react';
+// src/pages/SessionInputPage.js
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
@@ -9,86 +9,175 @@ import { sessionApi } from '../services/api';
 
 const SessionInputPage = () => {
     const navigate = useNavigate();
-    const [sessionId, setSessionId] = useState('');
+    const [sessions, setSessions] = useState([]);
+    const [filteredSessions, setFilteredSessions] = useState([]);
+    const [selectedSession, setSelectedSession] = useState('');
+    const [searchTerm, setSearchTerm] = useState('');
     const [error, setError] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
+    useEffect(() => {
+        const fetchSessions = async () => {
+            try {
+                setIsLoading(true);
+                setError(null);
+                
+                const availableSessions = await sessionApi.getAllSessions();
+                
+                if (availableSessions && availableSessions.length > 0) {
+                    setSessions(availableSessions);
+                    setFilteredSessions(availableSessions);
+                    setSelectedSession(availableSessions[0]); // Выбираем первый элемент по умолчанию
+                } else {
+                    setError('Не найдено доступных игровых сессий');
+                }
+            } catch (err) {
+                console.error('Ошибка загрузки сессий:', err);
+                setError(err.message || 'Не удалось загрузить доступные сессии');
+            } finally {
+                setIsLoading(false);
+            }
+        };
         
-        if (!sessionId.trim()) {
-            setError('Please enter a session ID');
+        fetchSessions();
+    }, []);
+
+    // Фильтрация сессий при изменении поискового запроса
+    useEffect(() => {
+        if (!searchTerm.trim()) {
+            setFilteredSessions(sessions);
             return;
         }
         
-        setError(null);
-        setIsLoading(true);
+        const filtered = sessions.filter(session => 
+            session.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+        setFilteredSessions(filtered);
         
-        try {
-            // Use the sessionApi instead of direct fetch
-            const exists = await sessionApi.checkSession(sessionId);
-            
-            if (!exists) {
-                setError(`Session "${sessionId}" not found`);
-                return;
-            }
-            
-            // Навигация прямо на страницу роста дерева, без выбора хода
-            navigate(`/tree-growth/${sessionId}`);
-        } catch (err) {
-            setError(`Error: ${err.message}`);
-            console.error('Error checking session:', err);
-        } finally {
-            setIsLoading(false);
+        // Если есть результаты фильтрации, выбираем первый
+        if (filtered.length > 0) {
+            setSelectedSession(filtered[0]);
         }
+    }, [searchTerm, sessions]);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        
+        if (!selectedSession) {
+            setError('Пожалуйста, выберите сессию');
+            return;
+        }
+        
+        navigate(`/tree-growth/${selectedSession}`);
+    };
+    
+    // Извлечение и отображение информации о типе игры из ID сессии
+    const extractGameType = (sessionId) => {
+        const match = sessionId.match(/^([^_]+)/);
+        return match ? match[1] : 'Неизвестная игра';
+    };
+    
+    // Извлечение и отображение даты и времени из ID сессии
+    const extractDateTime = (sessionId) => {
+        const match = sessionId.match(/_(\d{8})_(\d{6})_/);
+        if (!match) return '';
+        
+        const dateStr = match[1];
+        const timeStr = match[2];
+        
+        const year = dateStr.slice(0, 4);
+        const month = dateStr.slice(4, 6);
+        const day = dateStr.slice(6, 8);
+        
+        const hours = timeStr.slice(0, 2);
+        const minutes = timeStr.slice(2, 4);
+        const seconds = timeStr.slice(4, 6);
+        
+        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
     };
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md p-8">
+            <Card className="w-full max-w-lg p-8">
                 <h1 className="text-2xl font-bold text-center mb-6" onClick={() => navigate('/')}>
-                Game Tree Visualization
+                    Визуализация дерева игры
                 </h1>
                 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label htmlFor="sessionId" className="block text-sm font-medium text-gray-700 mb-1">
-                            Session ID
-                        </label>
-                        <input
-                            id="sessionId"
-                            type="text"
-                            placeholder="ticTacToe_20250326_175456_1587262025626962580"
-                            value={sessionId}
-                            onChange={(e) => setSessionId(e.target.value)}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={isLoading}
-                        />
+                {isLoading ? (
+                    <div className="flex justify-center items-center">
+                        <LoadingSpinner />
+                        <div className="ml-4">Загрузка доступных сессий...</div>
                     </div>
-                    
-                    {error && (
-                        <ErrorMessage 
-                            message={error}
-                            onReset={() => setError(null)}
-                        />
-                    )}
-                    
-                    <Button
-                        type="submit"
-                        variant="primary"
-                        className="w-full"
-                        disabled={isLoading}
-                    >
-                        {isLoading ? (
-                            <div className="flex items-center justify-center">
-                                <LoadingSpinner size="sm" />
-                                <span className="ml-2">Checking...</span>
-                            </div>
-                        ) : (
-                            'View Tree Growth'
-                        )}
-                    </Button>
-                </form>
+                ) : error ? (
+                    <ErrorMessage 
+                        message={error}
+                        onReset={() => navigate('/')}
+                    />
+                ) : (
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div>
+                            <label htmlFor="sessionSearch" className="block text-sm font-medium text-gray-700 mb-2">
+                                Поиск сессии
+                            </label>
+                            <input
+                                id="sessionSearch"
+                                type="text"
+                                placeholder="Введите часть ID сессии или название игры..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Доступные сессии ({filteredSessions.length})
+                            </label>
+                            
+                            {filteredSessions.length === 0 ? (
+                                <div className="text-center p-4 border border-gray-200 rounded-md bg-gray-50">
+                                    Нет доступных сессий по запросу "{searchTerm}"
+                                </div>
+                            ) : (
+                                <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
+                                    {filteredSessions.map(session => (
+                                        <div 
+                                            key={session}
+                                            className={`p-3 border-b last:border-b-0 cursor-pointer hover:bg-blue-50 transition-colors ${selectedSession === session ? 'bg-blue-100' : ''}`}
+                                            onClick={() => setSelectedSession(session)}
+                                        >
+                                            <div className="flex justify-between">
+                                                <div className="font-medium text-blue-700">
+                                                    {extractGameType(session)}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                    {extractDateTime(session)}
+                                                </div>
+                                            </div>
+                                            <div className="text-xs text-gray-500 mt-1 truncate">
+                                                {session}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        
+                        <Button
+                            type="submit"
+                            variant="primary"
+                            className="w-full"
+                            disabled={isLoading || !selectedSession}
+                        >
+                            Просмотреть рост дерева
+                        </Button>
+                        
+                        <div className="text-center text-sm text-gray-500 mt-4">
+                            Выберите игровую сессию из списка для визуализации роста дерева. 
+                            Поиск работает по названию игры и идентификатору сессии.
+                        </div>
+                    </form>
+                )}
             </Card>
         </div>
     );
