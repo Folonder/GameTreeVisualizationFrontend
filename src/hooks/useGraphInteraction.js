@@ -63,4 +63,4 @@ export const useGraphInteraction = () => {
         setCustomNodePositions,
         resetNodePosition
     };
-};
+}

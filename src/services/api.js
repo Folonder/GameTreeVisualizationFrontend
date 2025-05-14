@@ -30,17 +30,6 @@ async function handleResponse(response) {
 }
 
 export const sessionApi = {
-    async checkSession(sessionId) {
-        const response = await fetch(`${API_URL}GameSession/exists`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ sessionId }),
-        });
-        return handleResponse(response);
-    },
-
     async getAvailableTurns(sessionId) {
         const response = await fetch(`${API_URL}GameSession/turns`, {
             method: 'POST',
@@ -63,33 +52,6 @@ export const sessionApi = {
         return handleResponse(response);
     },
     
-    async getAllTurnsGrowth(sessionId) {
-        try {
-            const turns = await this.getAvailableTurns(sessionId);
-            
-            if (!turns || turns.length === 0) {
-                throw new Error('No turns available');
-            }
-            
-            const allTurnsData = [];
-            
-            for (const turnNumber of turns) {
-                const turnGrowth = await this.getTurnGrowth(sessionId, turnNumber);
-                
-                if (turnGrowth && turnGrowth.length > 0) {
-                    allTurnsData.push({
-                        turnNumber,
-                        steps: turnGrowth
-                    });
-                }
-            }
-            
-            return allTurnsData;
-        } catch (error) {
-            console.error('Error fetching all turns growth:', error);
-            throw error;
-        }
-    },
     async getAllSessions() {
         const response = await fetch(`${API_URL}GameSession/sessions`, {
             method: 'GET',
