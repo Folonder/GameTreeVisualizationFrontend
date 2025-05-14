@@ -8,24 +8,26 @@ import { createSvgFilters, addNodeCircles, addPercentageLabels, addPlusSignsToNo
          addChangeIndicators, animateNewNodes, addInteractionHandlers } from '../utils/nodeVisualUtils';
 import { prepareHierarchyData, processVisibleNodes, createVisibleLinks } from '../utils/treeDataProcessor';
 
-export const useTreeRenderer = ({
-    data,
-    onError,
-    shouldShowNode,
-    getNodeState,
-    hiddenChildrenIds,
-    filteredChildrenIds,
-    overrideFilterIds,
-    toggleNodeExpansion,
-    toggleFilterOverride,
-    handleContextMenu,
-    setupNodeDrag,
-    setupGraphPan,
-    calculateNodePercentage,
-    customNodePositions,
-    changes,
-    highlightChanges
-}) => {
+export const useTreeRenderer = (props) => {
+    const {
+        data,
+        onError,
+        shouldShowNode,
+        getNodeState,
+        hiddenChildrenIds,
+        filteredChildrenIds,
+        overrideFilterIds,
+        toggleNodeExpansion,
+        toggleFilterOverride,
+        handleContextMenu,
+        setupNodeDrag,
+        setupGraphPan,
+        calculateNodePercentage,
+        customNodePositions,
+        changes,
+        highlightChanges
+    } = props;
+
     const svgRef = useRef(null);
     const mainGroupRef = useRef(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -36,19 +38,53 @@ export const useTreeRenderer = ({
         maxDepth: 0
     });
 
+    // Используем ref для хранения флага, чтобы избежать бесконечных циклов
+    const renderingRef = useRef(false);
+    // Ref для хранения предыдущих данных для определения, нужен ли рендер
+    const prevDataRef = useRef(null);
+    const prevPropsRef = useRef({});
+
+    // Проверка, изменились ли критические пропсы
+    const havePropsChanged = useCallback(() => {
+        if (!prevPropsRef.current) return true;
+        
+        // Проверяем только те свойства, от которых реально зависит рендеринг
+        return (
+            prevPropsRef.current.data !== data ||
+            prevPropsRef.current.hiddenChildrenIds !== hiddenChildrenIds ||
+            prevPropsRef.current.filteredChildrenIds !== filteredChildrenIds ||
+            prevPropsRef.current.overrideFilterIds !== overrideFilterIds ||
+            prevPropsRef.current.changes !== changes || 
+            prevPropsRef.current.highlightChanges !== highlightChanges
+        );
+    }, [
+        data,
+        hiddenChildrenIds,
+        filteredChildrenIds,
+        overrideFilterIds,
+        changes,
+        highlightChanges
+    ]);
+
     const renderTree = useCallback(() => {
+        // Защита от повторного рендеринга во время уже запущенного
+        if (renderingRef.current) return;
+        // Проверка наличия данных и DOM-элемента
         if (!data || !svgRef.current) return;
+        
+        // Устанавливаем флаг, что рендеринг запущен
+        renderingRef.current = true;
         setIsLoading(true);
     
         try {
-            // Clear the SVG
+            // Очищаем SVG
             const svg = d3.select(svgRef.current);
             svg.selectAll("*").remove();
             
             svg.attr('width', TREE_CONSTANTS.DIMENSIONS.WIDTH)
                .attr('height', TREE_CONSTANTS.DIMENSIONS.HEIGHT);
     
-            // Process data and determine tree size characteristics
+            // Обработка данных и определение характеристик размера дерева
             const { hierarchy, allNodes } = prepareHierarchyData(data);
             if (!hierarchy) throw new Error("Failed to process hierarchy data");
             
@@ -57,7 +93,7 @@ export const useTreeRenderer = ({
                 verticalSpacingMultiplier, nodeSpacingMultiplier 
             } = determineTreeSize(data);
             
-            // Create tree layout and process positions
+            // Создание макета дерева и обработка позиций
             const treeLayout = createTreeLayout(
                 data, 
                 verticalSpacingMultiplier, 
@@ -66,38 +102,38 @@ export const useTreeRenderer = ({
                 isSmallTree
             );
             
-            // Apply layout and then custom positions
+            // Применяем макет и затем пользовательские позиции
             const root = treeLayout(hierarchy);
             applyCustomPositions(allNodes, customNodePositions);
             
-            // Add SVG filters for animations
+            // Добавляем SVG-фильтры для анимаций
             createSvgFilters(svg);
             
-            // Process visible nodes and links
-            const { visibleNodes } = processVisibleNodes(root, shouldShowNode, getNodeState);
+            // Обрабатываем видимые узлы и связи
+            const { visibleNodes, nodeStates } = processVisibleNodes(root, shouldShowNode, getNodeState);
             const visibleLinks = createVisibleLinks(visibleNodes);
             
-            // Create main group for the graph
+            // Создаем основную группу для графа
             const g = svg.append('g')
                 .attr('transform', `translate(${TREE_CONSTANTS.DIMENSIONS.MARGIN}, ${TREE_CONSTANTS.DIMENSIONS.MARGIN})`);
             
-            mainGroupRef.current = g;
+            mainGroupRef.current = g.node();
             setupGraphPan(svg, g, nodeCount);
     
-            // Render links
+            // Рендерим связи
             renderLinks(g, visibleLinks);
     
-            // Prepare drag handler
+            // Подготавливаем обработчик перетаскивания
             const dragHandler = setupNodeDrag();
     
-            // Find root node visits for scaling
+            // Находим посещения корневого узла для масштабирования
             const rootNode = allNodes.find(node => node.depth === 0);
             const rootVisits = rootNode?.data.statistics?.numVisits || 1;
             
-            // Calculate node radius function
+            // Рассчитываем функцию радиуса узла
             const getNodeRadiusFunc = node => getNodeRadius(node, nodeCount, rootVisits);
             
-            // Create node groups
+            // Создаем группы узлов
             const nodeGroups = g.selectAll('g.node')
                 .data(visibleNodes)
                 .join('g')
@@ -105,7 +141,7 @@ export const useTreeRenderer = ({
                 .attr('data-id', d => d.data.id)
                 .attr('transform', d => `translate(${d.y},${d.x})`);
             
-            // Add visual elements to nodes
+            // Добавляем визуальные элементы к узлам
             addNodeCircles(
                 nodeGroups, 
                 getNodeRadiusFunc, 
@@ -135,7 +171,7 @@ export const useTreeRenderer = ({
             
             addChangeIndicators(nodeGroups, changes, isTinyTree);
             
-            // Add interaction handlers
+            // Добавляем обработчики взаимодействия
             addInteractionHandlers(
                 nodeGroups,
                 dragHandler,
@@ -148,12 +184,12 @@ export const useTreeRenderer = ({
                 getNodeRadiusFunc
             );
             
-            // Add animations for new nodes
+            // Добавляем анимации для новых узлов
             if (highlightChanges && changes && changes.newNodes && changes.newNodes.length > 0) {
                 animateNewNodes(nodeGroups, changes);
             }
     
-            // Update statistics
+            // Обновляем статистику
             setStats({
                 totalNodes: allNodes.length,
                 visibleNodes: visibleNodes.length,
@@ -166,7 +202,19 @@ export const useTreeRenderer = ({
             setError(err.message);
             if (onError) onError(err);
         } finally {
+            // Сохраняем текущие данные и пропсы
+            prevDataRef.current = data;
+            prevPropsRef.current = {
+                data,
+                hiddenChildrenIds,
+                filteredChildrenIds,
+                overrideFilterIds,
+                changes,
+                highlightChanges
+            };
+            
             setIsLoading(false);
+            renderingRef.current = false;
         }
     }, [
         data,
@@ -187,19 +235,16 @@ export const useTreeRenderer = ({
         highlightChanges
     ]);
 
-    // Run rendering when dependencies change
+    // Упрощенный useEffect, который запускает renderTree только при реальных изменениях
     useEffect(() => {
-        renderTree();
-    }, [
-        renderTree, 
-        data, 
-        hiddenChildrenIds, 
-        overrideFilterIds, 
-        filteredChildrenIds,
-        changes,
-        highlightChanges
-    ]);
+        // Проверяем, нужно ли обновлять дерево
+        if (data && svgRef.current && havePropsChanged() && !renderingRef.current) {
+            // Запускаем рендеринг дерева
+            renderTree();
+        }
+    }, [renderTree, data, havePropsChanged]);
 
+    // Возвращаем те же props, что и раньше
     return {
         svgRef,
         renderTree,

@@ -1,5 +1,5 @@
 // src/components/tree/TreeVisualizer.js
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useTreeRenderer } from '../../hooks/useTreeRenderer';
 import { calculateNodePercentage } from '../../utils/treeUtils';
@@ -25,6 +25,7 @@ const TreeVisualizer = ({
     onError,
     onStatsUpdate
 }) => {
+    const memoizedCalculateNodePercentage = useMemo(() => calculateNodePercentage, []);
     const {
         svgRef,
         error,
@@ -42,7 +43,7 @@ const TreeVisualizer = ({
         handleContextMenu,
         setupNodeDrag,
         setupGraphPan,
-        calculateNodePercentage,
+        calculateNodePercentage : memoizedCalculateNodePercentage,
         customNodePositions,
         changes,
         highlightChanges
