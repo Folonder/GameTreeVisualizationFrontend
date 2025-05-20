@@ -418,7 +418,7 @@ const TreeGrowthPage = () => {
             <div className="h-16 bg-white border-b border-gray-200 flex items-center px-4 justify-between">
                 <div className="flex items-center">
                     <h1 className="text-xl font-semibold text-gray-800 mr-4" onClick={() => navigate('/')}>
-                        Game Tree Visualization
+                        Визуализация дерева игры
                     </h1>
                     <StatusMessage
                         type="info"
@@ -457,7 +457,7 @@ const TreeGrowthPage = () => {
                                 disabled={isTransitioning}
                                 className="px-3 py-1.5 text-sm"
                             >
-                                {isPlaying ? 'Пауза' : 'Воспроизведение'}
+                                {isPlaying ? 'Пауза' : 'Пуск'}
                             </Button>
 
                             <Button
