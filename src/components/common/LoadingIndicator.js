@@ -1,7 +1,6 @@
-// src/components/common/LoadingIndicator.js
 import React from 'react';
 
-const LoadingIndicator = ({ message = 'Loading...' }) => {
+const LoadingIndicator = ({ message = 'Загрузка...' }) => {
     return (
         <div className="center-absolute flex flex-col items-center gap-4">
             <div className="loading-spinner"></div>

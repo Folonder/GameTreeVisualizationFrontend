@@ -1,4 +1,3 @@
-// src/pages/GridPage.js
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import JsonGrid from '../components/grid/JsonGrid';
@@ -21,18 +20,18 @@ const GridPage = ({ pathMode = false }) => {
     const loadData = async () => {
       try {
         setLoading(true);
-        
+
         // Приоритет загрузки:
         // 1. Стандартное хранилище treeData
         // 2. Временное хранилище currentTreeData
         // 3. Пробуем найти другие ключи с данными
         let treeData = localStorage.getItem('treeData');
-        
+
         // Если основное хранилище пусто, проверяем альтернативы
         if (!treeData) {
           treeData = localStorage.getItem('currentTreeData');
         }
-        
+
         // В крайнем случае ищем любые JSON данные дерева
         if (!treeData) {
           // Перебираем все ключи в localStorage и ищем данные в формате JSON
@@ -46,70 +45,70 @@ const GridPage = ({ pathMode = false }) => {
                 // Проверяем, похоже ли это на дерево (наличие children или state)
                 if (parsed && (parsed.children || parsed.state)) {
                   treeData = value;
-                  console.log(`Found tree data in localStorage key: ${key}`);
+                  console.log(`Найдены данные дерева в localStorage с ключом: ${key}`);
                   break;
                 }
               } catch (e) {
                 // Игнорируем ошибки парсинга
-                console.warn(`Failed to parse localStorage item with key: ${key}`);
+                console.warn(`Не удалось разобрать элемент localStorage с ключом: ${key}`);
               }
             }
           }
         }
-        
+
         if (!treeData) {
-          setError('No tree data available. Please upload a file first or return to the tree view.');
+          setError('Данные дерева отсутствуют. Сначала загрузите файл или вернитесь к визуализации дерева.');
           return;
         }
-        
+
         // Пытаемся разобрать данные
         let parsedData;
         try {
           parsedData = JSON.parse(treeData);
-          console.log("Successfully parsed tree data:", parsedData);
+          console.log("Данные дерева успешно разобраны:", parsedData);
         } catch (e) {
-          setError(`Invalid tree data format: ${e.message}`);
-          console.error("Failed to parse tree data:", e);
+          setError(`Неверный формат данных дерева: ${e.message}`);
+          console.error("Не удалось разобрать данные дерева:", e);
           return;
         }
-        
+
         // Проверяем, что данные имеют правильную структуру
         if (!parsedData || (typeof parsedData !== 'object')) {
-          setError('Tree data has invalid format');
+          setError('Данные дерева имеют неверный формат');
           return;
         }
-        
+
         // Всегда отображаем все дерево
         setData(parsedData);
-        
+
         // Проверяем, используем ли режим пути или ID
         if (pathMode && nodePath) {
           // Режим пути - используем индексы
           const path = parsePathFromUrl(nodePath);
-          console.log("Parsed node path:", path);
-          
+          console.log("Разобранный путь узла:", path);
+
           // Используем улучшенную функцию поиска для обработки различных форматов данных
           const foundNode = findNodeByDeepSearch(parsedData, path);
-          
+
           if (foundNode) {
-            console.log('Found node by path:', foundNode);
-            
+            console.log('Найден узел по пути:', foundNode);
+
             // Убедимся, что у узла есть все необходимые поля
             if (!foundNode.id && foundNode.data?.id) {
               foundNode.id = foundNode.data.id;
             }
-            
+
             if (typeof foundNode.depth === 'undefined' && path) {
               foundNode.depth = path.length; // Устанавливаем глубину на основе пути
             }
-            
+
             // Сохраняем ссылку на найденный узел для отображения дополнительной информации
             setSelectedNode(foundNode);
-            
+
             // Создаем пути для автоматического разворачивания
             // Формируем путь в JSON для автоматического разворачивания узлов
             const expandPaths = ['root'];
-            
+
             // Добавляем путь для каждого уровня вложенности
             let currentPath = 'root.children';
             for (const index of path) {
@@ -118,32 +117,32 @@ const GridPage = ({ pathMode = false }) => {
               expandPaths.push(currentPath);
               currentPath += '.children';
             }
-            
+
             setExpandedPaths(expandPaths);
-            
+
             // Добавляем функцию для автоматического скролла к узлу
             setTimeout(() => {
               // Ищем элемент по ID или нескольким альтернативным селекторам
               let element = document.getElementById(`node-path-${nodePath}`);
-              
+
               // Если не нашли по ID, пытаемся найти другими способами
               if (!element) {
                 const lastIndex = path[path.length - 1];
                 element = document.querySelector(`[data-node-index="${lastIndex}"]`);
               }
-              
+
               if (!element) {
                 // Ищем по содержимому state или ID узла
                 const stateString = foundNode.state || '';
                 const idString = foundNode.id || '';
                 const elements = Array.from(document.querySelectorAll('.json-grid td'));
-                
-                element = elements.find(el => 
-                  el.textContent.includes(stateString) || 
+
+                element = elements.find(el =>
+                  el.textContent.includes(stateString) ||
                   el.textContent.includes(idString)
                 )?.parentElement;
               }
-              
+
               if (element) {
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 // Добавляем подсветку
@@ -153,22 +152,22 @@ const GridPage = ({ pathMode = false }) => {
                   element.classList.add('bg-yellow-50');
                 }, 1000);
               } else {
-                console.warn("Could not find node element to scroll to");
+                console.warn("Не удалось найти элемент узла для прокрутки");
               }
             }, 500);
           } else {
-            setError(`Node at path "${nodePath}" not found. It's possible the path format doesn't match the tree structure.`);
+            setError(`Узел по пути "${nodePath}" не найден. Возможно, формат пути не соответствует структуре дерева.`);
           }
         } else if (nodeId) {
           // Реализуем поиск узла по ID
           const findNodeById = (node, id) => {
             if (!node) return null;
-            
+
             // Проверяем ID текущего узла
             if (node.id === id || node.data?.id === id) {
               return node;
             }
-            
+
             // Рекурсивно проверяем всех детей
             if (node.children && Array.isArray(node.children)) {
               for (const child of node.children) {
@@ -176,32 +175,32 @@ const GridPage = ({ pathMode = false }) => {
                 if (found) return found;
               }
             }
-            
+
             return null;
           };
-          
+
           const foundNode = findNodeById(parsedData, nodeId);
-          
+
           if (foundNode) {
-            console.log('Found node by ID:', foundNode);
+            console.log('Найден узел по ID:', foundNode);
             setSelectedNode(foundNode);
             // Разворачиваем пути (реализация сложнее, поэтому просто разворачиваем корень)
             setExpandedPaths(['root']);
           } else {
-            setError(`Node with ID "${nodeId}" not found`);
+            setError(`Узел с ID "${nodeId}" не найден`);
           }
         } else {
           // Если ничего не указано, просто отображаем все дерево
           setExpandedPaths(['root']);
         }
       } catch (err) {
-        setError(`Failed to load tree data: ${err.message}`);
-        console.error('Error loading tree data:', err);
+        setError(`Ошибка загрузки данных дерева: ${err.message}`);
+        console.error('Ошибка загрузки данных дерева:', err);
       } finally {
         setLoading(false);
       }
     };
-    
+
     loadData();
   }, [nodeId, nodePath, pathMode]);
 
@@ -209,32 +208,32 @@ const GridPage = ({ pathMode = false }) => {
   // Проверяет разные структуры данных и более устойчива
   const findNodeByDeepSearch = (rootNode, path) => {
     if (!rootNode || !path || path.length === 0) return rootNode;
-    
-    console.log("Starting deep search for node with path:", path);
-    
+
+    console.log("Начинаем глубокий поиск узла по пути:", path);
+
     // Проверяем, имеет ли rootNode поле data
     // (это может произойти, если мы передали d3.hierarchy узел вместо обычного узла)
     const dataNode = rootNode.data ? rootNode.data : rootNode;
-    
+
     try {
       return findNodeByPath(dataNode, path);
     } catch (error) {
-      console.error("Error in standard findNodeByPath:", error);
-      
+      console.error("Ошибка в стандартной функции findNodeByPath:", error);
+
       // Если стандартная функция не справилась, попробуем ручной поиск
       let current = dataNode;
-      
+
       for (const index of path) {
-        console.log(`Looking for child at index ${index} in:`, current);
-        
+        console.log(`Ищем потомка с индексом ${index} в:`, current);
+
         if (!current.children || !Array.isArray(current.children) || index >= current.children.length) {
-          console.error(`Cannot find child at index ${index}`);
+          console.error(`Не удается найти потомка с индексом ${index}`);
           return null;
         }
-        
+
         current = current.children[index];
       }
-      
+
       return current;
     }
   };
@@ -256,16 +255,10 @@ const GridPage = ({ pathMode = false }) => {
       <header className="bg-white shadow">
         <div className="max-w-7xl mx-auto py-4 px-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold text-gray-900" onClick={() => navigate('/')}>
-            Game Tree Visualization
+            Визуализация дерева игры
           </h1>
           <div className="flex space-x-4">
-            <Button 
-              onClick={handleBack}
-              variant="secondary"
-            >
-              Back to Tree
-            </Button>
-            
+
             {selectedNode && (
               <Button
                 onClick={() => {
@@ -276,58 +269,58 @@ const GridPage = ({ pathMode = false }) => {
                 }}
                 variant="secondary"
               >
-                Reset View
+                Сбросить просмотр
               </Button>
             )}
           </div>
         </div>
       </header>
-      
+
       <main className="max-w-7xl mx-auto py-6 px-4">
         {error && (
           <div className="mb-4">
             <ErrorMessage message={error} />
           </div>
         )}
-        
+
         {selectedNode && (
           <Card className="mb-4 p-4">
             <div className="text-blue-700 font-medium">
-              <div className="text-lg mb-2">Selected Node</div>
+              <div className="text-lg mb-2">Выбранный узел</div>
               <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                 {selectedNode.id && (
                   <div className="text-sm text-gray-600">
                     <span className="font-semibold">ID:</span> <span className="font-mono">{selectedNode.id}</span>
                   </div>
                 )}
-                
+
                 {typeof selectedNode.depth !== 'undefined' && (
                   <div className="text-sm text-gray-600">
-                    <span className="font-semibold">Depth:</span> <span className="font-mono">{selectedNode.depth}</span>
+                    <span className="font-semibold">Глубина:</span> <span className="font-mono">{selectedNode.depth}</span>
                   </div>
                 )}
-                
+
                 {selectedNode.state && (
                   <div className="col-span-2 text-sm text-gray-600">
-                    <span className="font-semibold">State:</span> <span className="font-mono">{selectedNode.state}</span>
+                    <span className="font-semibold">Состояние:</span> <span className="font-mono">{selectedNode.state}</span>
                   </div>
                 )}
-                
+
                 {selectedNode.statistics && (
                   <div className="text-sm text-gray-600">
-                    <span className="font-semibold">Visits:</span> <span className="font-mono">{selectedNode.statistics.numVisits || 0}</span>
+                    <span className="font-semibold">Посещений:</span> <span className="font-mono">{selectedNode.statistics.numVisits || 0}</span>
                   </div>
                 )}
-                
+
                 {selectedNode.statistics && typeof selectedNode.statistics.relativeVisits !== 'undefined' && (
                   <div className="text-sm text-gray-600">
-                    <span className="font-semibold">Relative:</span> <span className="font-mono">{selectedNode.statistics.relativeVisits.toFixed(2)}%</span>
+                    <span className="font-semibold">Относительно:</span> <span className="font-mono">{selectedNode.statistics.relativeVisits.toFixed(2)}%</span>
                   </div>
                 )}
-                
+
                 {selectedNode.children && (
                   <div className="text-sm text-gray-600">
-                    <span className="font-semibold">Children:</span> <span className="font-mono">{selectedNode.children.length}</span>
+                    <span className="font-semibold">Потомков:</span> <span className="font-mono">{selectedNode.children.length}</span>
                   </div>
                 )}
               </div>
@@ -338,15 +331,15 @@ const GridPage = ({ pathMode = false }) => {
         <Card className="p-0 overflow-hidden max-h-[calc(100vh-200px)]">
           {data ? (
             <div className="overflow-auto h-full">
-              <JsonGrid 
-                data={data} 
+              <JsonGrid
+                data={data}
                 initialExpandedPaths={expandedPaths}
                 selectedNodePath={nodePath}
               />
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              No data available
+              Данные недоступны
             </div>
           )}
         </Card>
@@ -354,5 +347,4 @@ const GridPage = ({ pathMode = false }) => {
     </div>
   );
 };
-
 export default GridPage;

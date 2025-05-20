@@ -1,4 +1,3 @@
-// src/components/tree/NodeStyles.js
 import * as d3 from 'd3';
 import { TREE_CONSTANTS } from './constants';
 
@@ -55,18 +54,18 @@ export const getNodeStyle = (nodeState, visits) => {
 export const getNodeStateDescription = (nodeState) => {
     switch (nodeState) {
         case TREE_CONSTANTS.NODE_STATES.EXPANDED:
-            return 'Expanded node with visible children';
+            return 'Развернутый узел с видимыми потомками';
         case TREE_CONSTANTS.NODE_STATES.HAS_HIDDEN_CHILDREN:
-            return 'Node with hidden children';
+            return 'Узел со скрытыми потомками';
         case TREE_CONSTANTS.NODE_STATES.DEPTH_LIMITED:
-            return 'Node hidden due to depth limit';
+            return 'Узел скрыт из-за ограничения глубины';
         case TREE_CONSTANTS.NODE_STATES.FILTERED:
-            return 'Node hidden due to filter criteria';
+            return 'Узел скрыт из-за критериев фильтрации';
         case TREE_CONSTANTS.NODE_STATES.PARENT_HIDDEN:
-            return 'Node hidden because parent is hidden';
+            return 'Узел скрыт, так как скрыт родительский узел';
         case TREE_CONSTANTS.NODE_STATES.VISIBLE:
-            return 'Visible node';
+            return 'Видимый узел';
         default:
-            return 'Unknown state';
+            return 'Неизвестное состояние';
     }
 };

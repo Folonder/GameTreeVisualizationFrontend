@@ -25,7 +25,7 @@ export const ErrorMessage = ({
                             onClick={onRetry}
                             className="text-sm text-red-600 hover:text-red-500"
                         >
-                            Try again
+                            Попробовать снова
                         </button>
                     )}
                     {onReset && (
@@ -33,7 +33,7 @@ export const ErrorMessage = ({
                             onClick={onReset}
                             className="text-sm text-gray-600 hover:text-gray-500"
                         >
-                            Reset
+                            Сбросить
                         </button>
                     )}
                 </div>

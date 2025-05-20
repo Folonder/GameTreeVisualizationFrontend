@@ -1,4 +1,3 @@
-// src/components/tree/TreeUpload.js
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 
@@ -16,22 +15,24 @@ const TreeUpload = ({ onUpload }) => {
         try {
             // Проверяем размер файла (например, макс. 10MB)
             if (file.size > 10 * 1024 * 1024) {
-                throw new Error('File size exceeds 10MB limit');
+                throw new Error('Размер файла превышает лимит в 10МБ');
             }
 
             const text = await file.text();
             let data;
 
             try {
+                // Попытка разобрать как JSON (базовая проверка)
                 data = JSON.parse(text);
             } catch (e) {
-                throw new Error('Invalid JSON format');
+                throw new Error('Неверный формат JSON');
             }
 
+            // Передаем полученные данные родительскому компоненту для обработки
             onUpload(data);
         } catch (err) {
             setError(err.message);
-            console.error('Error reading file:', err);
+            console.error('Ошибка чтения файла:', err);
         } finally {
             setIsLoading(false);
         }
@@ -54,8 +55,8 @@ const TreeUpload = ({ onUpload }) => {
 
     return (
         <div className="space-y-4">
-            <div 
-                {...getRootProps()} 
+            <div
+                {...getRootProps()}
                 className={`
                     p-8 border-2 border-dashed rounded-lg text-center cursor-pointer
                     transition-colors duration-200 bg-white
@@ -66,13 +67,13 @@ const TreeUpload = ({ onUpload }) => {
                 `}
             >
                 <input {...getInputProps()} disabled={isLoading} />
-                
+
                 {isLoading ? (
                     <div className="space-y-3">
                         <div className="flex justify-center">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                         </div>
-                        <p className="text-gray-600">Processing file...</p>
+                        <p className="text-gray-600">Обработка файла...</p>
                     </div>
                 ) : isDragReject ? (
                     <div className="space-y-3">
@@ -81,7 +82,7 @@ const TreeUpload = ({ onUpload }) => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </div>
-                        <p className="text-red-500">Only JSON files are accepted</p>
+                        <p className="text-red-500">Принимаются только файлы JSON</p>
                     </div>
                 ) : isDragActive ? (
                     <div className="space-y-3">
@@ -90,7 +91,7 @@ const TreeUpload = ({ onUpload }) => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                             </svg>
                         </div>
-                        <p className="text-blue-500">Drop the file here</p>
+                        <p className="text-blue-500">Отпустите файл здесь</p>
                     </div>
                 ) : (
                     <div className="space-y-3">
@@ -101,10 +102,10 @@ const TreeUpload = ({ onUpload }) => {
                         </div>
                         <div>
                             <p className="text-gray-600">
-                                Drag & drop a JSON file here, or click to select
+                                Перетащите JSON-файл сюда или нажмите для выбора
                             </p>
                             <p className="text-sm text-gray-400 mt-1">
-                                Maximum file size: 10MB
+                                Максимальный размер файла: 10МБ
                             </p>
                         </div>
                     </div>

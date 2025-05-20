@@ -1,4 +1,3 @@
-// src/components/tree/ContextMenu.js
 import React, { useState, useEffect, useRef } from 'react';
 import { getNodeIdentifier, calculateNodePercentageFromRoot, findRootNode } from '../../utils/treeUtils';
 import { calculateNodePath, formatPathForUrl } from '../../utils/gridUtils';
@@ -15,7 +14,7 @@ const Statistics = ({ data, node, onClose }) => {
                 <button 
                     onClick={onClose} 
                     className="text-gray-500 hover:text-gray-700"
-                    title="Close Statistics"
+                    title="Закрыть статистику"
                 >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -24,14 +23,14 @@ const Statistics = ({ data, node, onClose }) => {
             </div>
             <div className="space-y-3">
                 <div>
-                    <h3 className="text-sm font-medium text-gray-500 mb-2">Basic Statistics</h3>
+                    <h3 className="text-sm font-medium text-gray-500 mb-2">Основная статистика</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <span className="text-sm text-gray-500">Visits:</span>
+                            <span className="text-sm text-gray-500">Посещений:</span>
                             <span className="ml-2 font-medium">{stats.numVisits}</span>
                         </div>
                         <div>
-                            <span className="text-sm text-gray-500">Relative to root:</span>
+                            <span className="text-sm text-gray-500">Относительно корня:</span>
                             <span className="ml-2 font-medium">{percentFromRoot}%</span>
                         </div>
                     </div>
@@ -127,18 +126,18 @@ const ContextMenu = ({
     let toggleButtonColor = '';
     
     if (isHiddenManually) {
-        toggleButtonText = 'Show Children';
+        toggleButtonText = 'Показать потомков';
         toggleButtonColor = 'text-red-600 hover:text-red-500';
     } else if (isFilteredOut) {
         if (hasFilterOverride) {
-            toggleButtonText = 'Hide Children (Filtered)';
+            toggleButtonText = 'Скрыть потомков (отфильтрованные)';
             toggleButtonColor = 'text-yellow-600 hover:text-yellow-500';
         } else {
-            toggleButtonText = 'Show Children (Override Filter)';
+            toggleButtonText = 'Показать потомков (переопределить фильтр)';
             toggleButtonColor = 'text-yellow-600 hover:text-yellow-500';
         }
     } else if (hasChildren) {
-        toggleButtonText = 'Hide Children';
+        toggleButtonText = 'Скрыть потомков';
         toggleButtonColor = 'text-green-600 hover:text-green-500';
     }
 
@@ -172,7 +171,7 @@ const ContextMenu = ({
                 window.open('/grid', '_blank');
             }
         } catch (error) {
-            console.error("Error navigating to grid view:", error);
+            console.error("Ошибка перехода к табличному просмотру:", error);
             window.open('/grid', '_blank');
         }
         
@@ -201,7 +200,7 @@ const ContextMenu = ({
                         className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded flex justify-between items-center"
                         onClick={handleToggleStatistics}
                     >
-                        <span>View Statistics</span>
+                        <span>Просмотр статистики</span>
                         {showStats ? (
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 11l7-7 7 7M5 19l7-7 7 7" />
@@ -229,7 +228,7 @@ const ContextMenu = ({
                         onClose();
                     }}
                 >
-                    Reset Node Position
+                    Сбросить позицию узла
                 </button>
                 
                 <div className="my-1 h-px bg-gray-200"></div>
@@ -237,7 +236,7 @@ const ContextMenu = ({
                     className="w-full px-3 py-2 text-left text-sm text-green-600 hover:bg-gray-100 rounded"
                     onClick={handleViewInGrid}
                 >
-                    View in Grid
+                    Просмотр в таблице
                 </button>
 
                 {showToggleButton && (
@@ -254,41 +253,41 @@ const ContextMenu = ({
                 
                 <div className="my-1 h-px bg-gray-200"></div>
                 <div className="px-3 py-2 text-xs text-gray-500">
-                    <div className="mb-1">Node Status:</div>
+                    <div className="mb-1">Статус узла:</div>
                     {isHiddenManually && (
                         <div className="flex items-center">
                             <span className="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
-                            <span>Children are manually hidden</span>
+                            <span>Потомки скрыты вручную</span>
                         </div>
                     )}
                     {isFilteredOut && !isHiddenManually && (
                         <div className="flex items-center">
                             <span className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span>
-                            <span>Children are hidden by filter</span>
+                            <span>Потомки скрыты фильтром</span>
                         </div>
                     )}
                     {hasFilterOverride && (
                         <div className="flex items-center">
                             <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                            <span>Filter override is active</span>
+                            <span>Активно переопределение фильтра</span>
                         </div>
                     )}
                     {!isHiddenManually && !isFilteredOut && hasChildren && (
                         <div className="flex items-center">
                             <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                            <span>All children are visible</span>
+                            <span>Все потомки видны</span>
                         </div>
                     )}
                     {!hasChildren && (
                         <div className="flex items-center">
                             <span className="w-2 h-2 rounded-full bg-gray-500 mr-2"></span>
-                            <span>Leaf node (no children)</span>
+                            <span>Лист (нет потомков)</span>
                         </div>
                     )}
 
-                    {/* Display nodeId */}
+                    {/* Отображение nodeId */}
                     <div className="mt-2 text-xs text-gray-500">
-                        <div className="mb-1">Node ID:</div>
+                        <div className="mb-1">ID узла:</div>
                         <span>{nodeId}</span>
                     </div>
                 </div>

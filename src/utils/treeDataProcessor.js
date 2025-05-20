@@ -54,28 +54,3 @@ export function createVisibleLinks(visibleNodes) {
     
     return visibleLinks;
 }
-
-export function calculateTreeStatistics(allNodes) {
-    const totalNodes = allNodes.length;
-    const maxDepth = allNodes.length ? Math.max(...allNodes.map(d => d.depth), 0) : 0;
-    
-    return {
-        totalNodes,
-        maxDepth,
-    };
-}
-
-export function markNodesWithHiddenChildren(visibleNodes, hiddenChildrenIds, filteredChildrenIds, overrideFilterIds) {
-    const nodesWithHiddenChildren = new Set();
-    
-    visibleNodes.forEach(node => {
-        const nodeId = getNodeIdentifier(node);
-        
-        if (hiddenChildrenIds.has(nodeId) || 
-            (filteredChildrenIds.has(nodeId) && !overrideFilterIds.has(nodeId))) {
-            nodesWithHiddenChildren.add(nodeId);
-        }
-    });
-    
-    return nodesWithHiddenChildren;
-}

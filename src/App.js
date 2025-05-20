@@ -1,4 +1,3 @@
-// src/App.js (обновленный)
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import SessionInputPage from './pages/SessionInputPage';
@@ -16,8 +15,8 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/sessions" element={<SessionInputPage />} />
         <Route path="/tree-growth/:sessionId" element={<TreeGrowthPage />} />
-        
-        {/* Существующие страницы для загрузки и визуализации произвольных деревьев */}
+
+        {/* Страницы для загрузки и визуализации произвольных деревьев */}
         <Route path="/upload" element={<UploadPage />} />
         <Route path="/tree" element={<TreePage />} />
         <Route path="/grid" element={<GridPage />} />

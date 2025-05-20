@@ -1,4 +1,3 @@
-// src/components/tree/TreeView.js
 import React, { useState } from 'react';
 import { useGraphInteraction } from '../../hooks/useGraphInteraction';
 import { useTreeFiltering } from '../../hooks/useTreeFiltering';
@@ -10,9 +9,9 @@ import ContextMenu from './ContextMenu';
 import LoadingIndicator from '../common/LoadingIndicator';
 import { ErrorMessage } from '../common/ErrorMessage';
 
-const TreeView = ({ 
-    data, 
-    onError, 
+const TreeView = ({
+    data,
+    onError,
     changes,
     highlightChanges = false
 }) => {
@@ -23,16 +22,16 @@ const TreeView = ({
         visibleNodes: 0,
         maxDepth: 0
     });
-    
+
     // Set up graph interaction
-    const { 
-        setupNodeDrag, 
-        setupGraphPan, 
+    const {
+        setupNodeDrag,
+        setupGraphPan,
         customNodePositions,
         setCustomNodePositions,
         resetNodePosition
     } = useGraphInteraction();
-    
+
     // Set up tree filtering
     const {
         filters,
@@ -45,14 +44,14 @@ const TreeView = ({
         resetFilters,
         shouldShowNode
     } = useTreeFiltering(data);
-    
+
     // Set up node state determination
     const { getNodeState } = useNodeState(
         hiddenChildrenIds,
         filteredChildrenIds,
         overrideFilterIds
     );
-    
+
     // Set up context menu
     const {
         contextMenu,
@@ -66,17 +65,17 @@ const TreeView = ({
         toggleNodeExpansion,
         toggleFilterOverride
     );
-    
+
     // Handlers
     const handleError = (err) => {
         setError(err.message || String(err));
         if (onError) onError(err);
     };
-    
+
     const handleStatsUpdate = (newStats) => {
         setStats(newStats);
     };
-    
+
     const handleResetFilters = () => {
         resetFilters();
         setCustomNodePositions(new Map());
@@ -94,7 +93,7 @@ const TreeView = ({
 
     // Handle loading state
     if (isLoading) {
-        return <LoadingIndicator message="Processing tree data..." />;
+        return <LoadingIndicator message="Обработка данных дерева..." />;
     }
 
     return (
@@ -109,19 +108,19 @@ const TreeView = ({
                     totalNodes={stats.totalNodes}
                 />
                 <div className="ml-4 text-sm text-gray-500">
-                    Showing {stats.visibleNodes} of {stats.totalNodes} nodes
+                    Показано {stats.visibleNodes} из {stats.totalNodes} узлов
                 </div>
-                
+
                 {/* Changes information */}
                 {changes && highlightChanges && (
                     <div className="ml-auto flex items-center space-x-4">
                         <div className="flex items-center">
                             <div className="w-3 h-3 rounded-full bg-green-500 mr-1"></div>
-                            <span className="text-xs">New nodes: {changes.newNodes.length}</span>
+                            <span className="text-xs">Новые узлы: {changes.newNodes.length}</span>
                         </div>
                         <div className="flex items-center">
                             <div className="w-3 h-3 rounded-full bg-blue-500 mr-1"></div>
-                            <span className="text-xs">Updated nodes: {changes.updatedNodes.length}</span>
+                            <span className="text-xs">Обновленные узлы: {changes.updatedNodes.length}</span>
                         </div>
                     </div>
                 )}

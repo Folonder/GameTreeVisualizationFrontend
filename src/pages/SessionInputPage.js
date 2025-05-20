@@ -1,4 +1,3 @@
-// src/pages/SessionInputPage.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Card from '../components/common/Card';
@@ -169,7 +168,7 @@ const SessionInputPage = () => {
                             className="w-full"
                             disabled={isLoading || !selectedSession}
                         >
-                            Просмотреть рост дерева
+                            Просмотр роста дерева
                         </Button>
                         
                         <div className="text-center text-sm text-gray-500 mt-4">

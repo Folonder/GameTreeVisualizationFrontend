@@ -61,19 +61,19 @@ const JsonGrid = ({
             <span className="text-xs font-bold mr-2 w-4 h-4 flex items-center justify-center border border-gray-300 rounded-full">
               {expandedPaths[path] ? '−' : '+'}
             </span>
-            <span className="text-gray-700 font-medium">Array</span>
-            <span className="text-gray-500 ml-2">({value.length} items)</span>
-            {isSelected && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Selected Node</span>}
+            <span className="text-gray-700 font-medium">Массив</span>
+            <span className="text-gray-500 ml-2">({value.length} элем.)</span>
+            {isSelected && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Выбранный узел</span>}
           </div>
-          
+
           {expandedPaths[path] && (
             <div className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse" style={{ minWidth: '400px' }}>
                   <thead>
                     <tr className="bg-gray-50">
-                      <th className="text-left p-2 border-b border-gray-200 text-gray-600 text-xs font-medium w-16">Index</th>
-                      <th className="text-left p-2 border-b border-gray-200 text-gray-600 text-xs font-medium">Value</th>
+                      <th className="text-left p-2 border-b border-gray-200 text-gray-600 text-xs font-medium w-16">Индекс</th>
+                      <th className="text-left p-2 border-b border-gray-200 text-gray-600 text-xs font-medium">Значение</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -82,8 +82,8 @@ const JsonGrid = ({
                         <td className="p-2 border-r border-gray-200 text-gray-500 text-xs w-16 whitespace-nowrap">[{index}]</td>
                         <td className="p-2">
                           {renderValue(
-                            item, 
-                            `${path}[${index}]`, 
+                            item,
+                            `${path}[${index}]`,
                             nodePath ? `${nodePath}-${index}` : `${index}`,
                             index
                           )}
@@ -98,14 +98,14 @@ const JsonGrid = ({
         </div>
       );
     }
-    
+
     // Обработка объектов
     if (valueType === 'object') {
       const entries = Object.entries(value);
-      
+
       return (
         <div className="border border-gray-200 rounded min-w-[400px]">
-          <div 
+          <div
             className={`cursor-pointer flex items-center p-2 border-b border-gray-200 ${isSelected ? 'bg-yellow-100' : 'bg-gray-50'}`}
             onClick={() => togglePath(path)}
             id={nodePath ? `node-path-${nodePath}` : ''}
@@ -114,19 +114,19 @@ const JsonGrid = ({
             <span className="text-xs font-bold mr-2 w-4 h-4 flex items-center justify-center border border-gray-300 rounded-full">
               {expandedPaths[path] ? '−' : '+'}
             </span>
-            <span className="text-gray-700 font-medium">Object</span>
-            <span className="text-gray-500 ml-2">({entries.length} properties)</span>
-            {isSelected && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Selected Node</span>}
+            <span className="text-gray-700 font-medium">Объект</span>
+            <span className="text-gray-500 ml-2">({entries.length} свойств)</span>
+            {isSelected && <span className="ml-2 text-xs bg-blue-500 text-white px-2 py-0.5 rounded">Выбранный узел</span>}
           </div>
-          
+
           {expandedPaths[path] && (
             <div className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse" style={{ minWidth: '400px' }}>
                   <thead>
                     <tr className="bg-gray-50">
-                      <th className="text-left p-2 border-b border-gray-200 text-gray-600 text-xs font-medium w-1/4 min-w-[150px]">Property</th>
-                      <th className="text-left p-2 border-b border-gray-200 text-gray-600 text-xs font-medium">Value</th>
+                      <th className="text-left p-2 border-b border-gray-200 text-gray-600 text-xs font-medium w-1/4 min-w-[150px]">Свойство</th>
+                      <th className="text-left p-2 border-b border-gray-200 text-gray-600 text-xs font-medium">Значение</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -137,7 +137,7 @@ const JsonGrid = ({
                           {(key === 'id' || key === 'depth') && <span className="ml-1 text-xs text-red-600">*</span>}
                         </td>
                         <td className="p-2">
-                          {key === 'children' && Array.isArray(val) 
+                          {key === 'children' && Array.isArray(val)
                             ? renderValue(val, `${path}.${key}`, nodePath)
                             : renderValue(val, `${path}.${key}`, nodePath)}
                         </td>
@@ -151,25 +151,25 @@ const JsonGrid = ({
         </div>
       );
     }
-    
+
     // Обработка строк
     if (valueType === 'string') {
       return <span className="text-green-600 font-mono whitespace-normal break-words">"{value}"</span>;
     }
-    
+
     // Обработка чисел
     if (valueType === 'number') {
       return <span className="text-purple-600 font-mono">{value}</span>;
     }
-    
+
     // Обработка булевых значений
     if (valueType === 'boolean') {
       return <span className="text-orange-600 font-mono">{value.toString()}</span>;
     }
-    
+
     // Обработка функций
     if (valueType === 'function') {
-      return <span className="text-gray-500 italic">function</span>;
+      return <span className="text-gray-500 italic">функция</span>;
     }
     
     // Обработка других типов значений
