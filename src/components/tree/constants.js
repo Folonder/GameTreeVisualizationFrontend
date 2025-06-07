@@ -7,7 +7,8 @@ export const TREE_CONSTANTS = {
         HAS_HIDDEN_CHILDREN: 'has_hidden_children',  // Узел со скрытыми детьми
         PARENT_HIDDEN: 'parent_hidden',  // Узел скрыт, т.к. скрыт родитель
         DEPTH_LIMITED: 'depth_limited',  // Узел скрыт из-за ограничения глубины
-        FILTERED: 'filtered'          // Узел скрыт из-за фильтров
+        FILTERED: 'filtered',          // Узел скрыт из-за фильтров
+        PLAYOUT: 'playout'
     },
 
     // Цвета - добавлены цвета для изменений
@@ -17,13 +18,15 @@ export const TREE_CONSTANTS = {
             EXPANDED: '#047857',      // Зеленый для раскрытых узлов
             HAS_HIDDEN: '#dc2626',    // Красный для узлов со скрытыми детьми
             DEPTH_LIMITED: '#f59e0b', // Желтый для ограниченных по глубине
-            FILTERED: '#7c3aed'       // Фиолетовый для отфильтрованных
+            FILTERED: '#7c3aed',       // Фиолетовый для отфильтрованных
+            PLAYOUT: '#9333ea'  
         },
         FILL: {
             BASE: '#ffffff',          // Базовый цвет заливки
             HIGHLIGHT: '#f8fafc',     // Цвет при наведении
             NEW_NODE: '#b9f6ca',      // Светло-зеленый для новых узлов
-            UPDATED_NODE: '#bbdefb'   // Светло-синий для обновленных узлов
+            UPDATED_NODE: '#bbdefb',   // Светло-синий для обновленных узлов
+            PLAYOUT: '#e9d5ff'
         },
         TEXT: {
             PRIMARY: '#1e293b',       // Основной цвет текста
@@ -36,7 +39,7 @@ export const TREE_CONSTANTS = {
             NEW: '#388e3c',           // Темно-зеленый фон для метки "NEW"
             CHANGE: '#1976d2'         // Темно-синий фон для меток "+N"
         },
-        LINK: '#cbd5e0',              // Цвет связей
+        LINK: '#4a5568',              // Цвет связей
         NODE_NORMAL: '#3b82f6',       // Синий для обычных узлов
         NODE_HIDDEN: '#ef4444',       // Красный для узлов со скрытыми детьми
         NODE_LIMITED: '#f59e0b',      // Желтый для ограниченных узлов
@@ -67,11 +70,11 @@ export const TREE_CONSTANTS = {
         STROKE_WIDTH: {
             NORMAL: 1.5,              // Обычная толщина границы
             HIGHLIGHTED: 2.5,         // Толщина при выделении
-            LINK: 3,                // Толщина линий связей
+            LINK: 5,                // Толщина линий связей
             NEW_NODE: 4.0,            // Толщина границы новых узлов
             UPDATED_NODE: 3.0         // Толщина границы обновленных узлов
         },
-        LINK_OPACITY: 0.6,            // Прозрачность линий связей
+        LINK_OPACITY: 0.85,            // Прозрачность линий связей
         NODE_OPACITY: {
             NORMAL: 1,                // Обычная прозрачность узла
             DIMMED: 0.7,              // Приглушенная прозрачность
@@ -132,6 +135,11 @@ export const TREE_CONSTANTS = {
             INITIAL_LARGE: 10,        // Если макс. кол-во посещений меньше этого, все узлы крупные
             NEW_NODE: 2,              // Узлы с посещениями меньше этого значения считаются "новыми"
             SCALING_POWER: 0.33       // Показатель степени для нелинейного масштабирования
+        },
+        LINK_SCALING: {
+            TINY_TREE_MULTIPLIER: 1.5,
+            SMALL_TREE_MULTIPLIER: 1.3, 
+            LARGE_TREE_MULTIPLIER: 0.8
         }
     }
 };

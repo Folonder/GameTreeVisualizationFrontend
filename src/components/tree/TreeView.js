@@ -63,7 +63,9 @@ const TreeView = ({
         filteredChildrenIds,
         overrideFilterIds,
         toggleNodeExpansion,
-        toggleFilterOverride
+        toggleFilterOverride,
+        changes,              // Добавляем changes
+        highlightChanges      // Добавляем highlightChanges
     );
 
     // Handlers
@@ -147,7 +149,7 @@ const TreeView = ({
                     onStatsUpdate={handleStatsUpdate}
                 />
                 
-                {/* Context menu */}
+                {/* Context menu с передачей изменений */}
                 {contextMenu.visible && (
                     <ContextMenu
                         {...contextMenu}
@@ -157,6 +159,8 @@ const TreeView = ({
                         filteredChildrenIds={filteredChildrenIds}
                         hiddenChildrenIds={hiddenChildrenIds}
                         overrideFilterIds={overrideFilterIds}
+                        changes={changes}              // Добавляем changes
+                        highlightChanges={highlightChanges}  // Добавляем highlightChanges
                     />
                 )}
             </div>

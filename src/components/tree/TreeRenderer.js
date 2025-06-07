@@ -314,19 +314,7 @@ const getNodeRadius = (d) => {
             
             mainGroupRef.current = g;
             setupGraphPan(svg, g, nodeCount);
-    
-            // Render links
-            g.selectAll('path.link')
-                .data(visibleLinks)
-                .join('path')
-                .attr('class', 'link')
-                .attr('fill', 'none')
-                .attr('stroke', TREE_CONSTANTS.COLORS.LINK)
-                .attr('stroke-width', TREE_CONSTANTS.STYLE.STROKE_WIDTH.LINK)
-                .attr('stroke-opacity', TREE_CONSTANTS.STYLE.LINK_OPACITY)
-                .attr('d', d3.linkHorizontal()
-                    .x(d => d.y)
-                    .y(d => d.x));
+
     
             // Create drag handler
             const dragHandler = setupNodeDrag();

@@ -1,4 +1,5 @@
 // src/hooks/useContextMenuHandler.js
+
 import { useState, useCallback } from 'react';
 import { getNodeIdentifier } from '../utils/treeUtils';
 
@@ -7,14 +8,18 @@ export const useContextMenuHandler = (
     filteredChildrenIds,
     overrideFilterIds,
     toggleNodeExpansion,
-    toggleFilterOverride
+    toggleFilterOverride,
+    changes = null,           // Добавляем параметр changes
+    highlightChanges = false  // Добавляем параметр highlightChanges
 ) => {
     const [contextMenu, setContextMenu] = useState({ 
         visible: false, 
         x: 0, 
         y: 0, 
         node: null,
-        nodeState: null
+        nodeState: null,
+        changes: null,           // Добавляем в состояние
+        highlightChanges: false  // Добавляем в состояние
     });
 
     const handleContextMenu = useCallback((event, node, nodeState) => {
@@ -26,12 +31,22 @@ export const useContextMenuHandler = (
             x: event.pageX,
             y: event.pageY,
             node: node,
-            nodeState: nodeState
+            nodeState: nodeState,
+            changes: changes,           // Передаем changes
+            highlightChanges: highlightChanges  // Передаем highlightChanges
         });
-    }, []);
+    }, [changes, highlightChanges]);  // Добавляем в зависимости
 
     const handleCloseContextMenu = useCallback(() => {
-        setContextMenu({ visible: false, x: 0, y: 0, node: null, nodeState: null });
+        setContextMenu({ 
+            visible: false, 
+            x: 0, 
+            y: 0, 
+            node: null, 
+            nodeState: null,
+            changes: null,
+            highlightChanges: false
+        });
     }, []);
 
     const handleToggleExpansion = useCallback(() => {

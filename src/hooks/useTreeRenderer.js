@@ -121,7 +121,7 @@ export const useTreeRenderer = (props) => {
             setupGraphPan(svg, g, nodeCount);
     
             // Рендерим связи
-            renderLinks(g, visibleLinks);
+            renderLinks(g, visibleLinks, nodeCount);
     
             // Подготавливаем обработчик перетаскивания
             const dragHandler = setupNodeDrag();

@@ -62,3 +62,49 @@ svg text {
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+/* Добавить в src/index.css */
+
+/* Улучшенные стили для связей дерева */
+.link {
+    transition: stroke-opacity 0.2s ease, stroke-width 0.2s ease;
+    /* Добавляем плавные переходы для интерактивности */
+}
+
+/* Эффект при наведении на связи */
+.link:hover {
+    stroke-opacity: 1 !important;
+    stroke-width: 6px !important;
+    cursor: pointer;
+}
+
+/* Улучшенная видимость связей на темных фонах */
+.tree-container .link {
+    stroke-dasharray: none; /* Убираем пунктирные линии по умолчанию */
+}
+
+/* Специальные стили для связей в зависимости от состояния дерева */
+.tree-container.small-tree .link {
+    stroke-width: 6px; /* Увеличенная толщина для маленьких деревьев */
+}
+
+.tree-container.large-tree .link {
+    stroke-width: 4px; /* Стандартная толщина для больших деревьев */
+    filter: drop-shadow(0px 0px 2px rgba(0,0,0,0.2)); /* Тень для лучшей видимости */
+}
+
+/* Анимация появления связей */
+@keyframes linkFadeIn {
+    from {
+        opacity: 0;
+        stroke-width: 0;
+    }
+    to {
+        opacity: 0.85;
+        stroke-width: var(--link-width, 5px);
+    }
+}
+
+.link.animated {
+    animation: linkFadeIn 0.3s ease-out forwards;
+}

@@ -3,10 +3,12 @@ import * as d3 from 'd3';
 import { getNodeIdentifier } from './treeUtils';
 import { TREE_CONSTANTS } from '../components/tree/constants';
 
+// src/utils/nodeVisualUtils.js - обновить функцию createSvgFilters
+
 export function createSvgFilters(svg) {
     const defs = svg.append('defs');
     
-    // Улучшенный фильтр свечения для новых узлов - более яркий и заметный
+    // Существующие фильтры свечения...
     const newNodeFilter = defs.append('filter')
         .attr('id', 'glow-new-node')
         .attr('x', '-50%')
@@ -14,19 +16,14 @@ export function createSvgFilters(svg) {
         .attr('width', '200%')
         .attr('height', '200%');
     
-    // Яркое свечение для новых узлов
     const newNodeGlow = newNodeFilter.append('feGaussianBlur')
         .attr('stdDeviation', '2')
         .attr('result', 'coloredBlur');
     
-    // Комбинируем оригинальное изображение и свечение
     const newNodeMerge = newNodeFilter.append('feMerge');
-    newNodeMerge.append('feMergeNode')
-        .attr('in', 'coloredBlur');
-    newNodeMerge.append('feMergeNode')
-        .attr('in', 'SourceGraphic');
+    newNodeMerge.append('feMergeNode').attr('in', 'coloredBlur');
+    newNodeMerge.append('feMergeNode').attr('in', 'SourceGraphic');
     
-    // Усиленный фильтр пульсации для обновленных узлов
     const updatedNodeFilter = defs.append('filter')
         .attr('id', 'pulse-updated-node')
         .attr('x', '-50%')
@@ -34,18 +31,79 @@ export function createSvgFilters(svg) {
         .attr('width', '200%')
         .attr('height', '200%');
     
-    // Создаем более контрастный эффект
     const updatedNodeBlur = updatedNodeFilter.append('feGaussianBlur')
         .attr('in', 'SourceGraphic')
         .attr('stdDeviation', '1')
         .attr('result', 'blur');
     
-    // Добавляем анимацию с более заметной пульсацией
     updatedNodeBlur.append('animate')
         .attr('attributeName', 'stdDeviation')
         .attr('values', '0.5;2;0.5')
         .attr('dur', '1.2s')
         .attr('repeatCount', '3');
+
+    // НОВЫЕ ГРАДИЕНТЫ ДЛЯ КОМБИНИРОВАННЫХ СОСТОЯНИЙ
+    
+    // Градиент для новых playout узлов (зелено-фиолетовый)
+    const newPlayoutGradient = defs.append('radialGradient')
+        .attr('id', 'newPlayoutGradient')
+        .attr('cx', '50%')
+        .attr('cy', '50%')
+        .attr('r', '50%');
+    
+    newPlayoutGradient.append('stop')
+        .attr('offset', '0%')
+        .style('stop-color', '#b9f6ca')      // Светло-зеленый (новый) в центре
+        .style('stop-opacity', 1);
+    
+    newPlayoutGradient.append('stop')
+        .attr('offset', '70%')
+        .style('stop-color', '#d8b4fe')      // Смешанный зелено-фиолетовый
+        .style('stop-opacity', 1);
+        
+    newPlayoutGradient.append('stop')
+        .attr('offset', '100%')
+        .style('stop-color', '#e9d5ff')      // Светло-фиолетовый (playout) по краям
+        .style('stop-opacity', 1);
+    
+    // Градиент для обновленных playout узлов (сине-фиолетовый)
+    const updatedPlayoutGradient = defs.append('radialGradient')
+        .attr('id', 'updatedPlayoutGradient')
+        .attr('cx', '50%')
+        .attr('cy', '50%')
+        .attr('r', '50%');
+    
+    updatedPlayoutGradient.append('stop')
+        .attr('offset', '0%')
+        .style('stop-color', '#bbdefb')      // Светло-синий (обновленный) в центре
+        .style('stop-opacity', 1);
+    
+    updatedPlayoutGradient.append('stop')
+        .attr('offset', '70%')
+        .style('stop-color', '#c4b5fd')      // Смешанный сине-фиолетовый
+        .style('stop-opacity', 1);
+        
+    updatedPlayoutGradient.append('stop')
+        .attr('offset', '100%')
+        .style('stop-color', '#e9d5ff')      // Светло-фиолетовый (playout) по краям
+        .style('stop-opacity', 1);
+    
+    // Дополнительный градиент для простых playout узлов
+    const playoutGradient = defs.append('radialGradient')
+        .attr('id', 'playoutGradient')
+        .attr('cx', '50%')
+        .attr('cy', '50%')
+        .attr('r', '50%');
+    
+    playoutGradient.append('stop')
+        .attr('offset', '0%')
+        .style('stop-color', '#f3e8ff')      // Очень светло-фиолетовый в центре
+        .style('stop-opacity', 1);
+        
+    playoutGradient.append('stop')
+        .attr('offset', '100%')
+        .style('stop-color', '#e9d5ff')      // Светло-фиолетовый по краям
+        .style('stop-opacity', 1);
 }
 
 export function addNodeCircles(nodeGroups, getNodeRadiusFunc, getNodeState, getNodeChangeStyle, applyNodeStyles, changes, highlightChanges) {
@@ -127,10 +185,14 @@ export function addPlusSignsToNodesWithHiddenChildren(nodeGroups, isTinyTree, is
     });
 }
 
+// src/utils/nodeVisualUtils.js - обновить функцию addChangeIndicators
+
+// src/utils/nodeVisualUtils.js - упрощенная версия addChangeIndicators БЕЗ фиолетовых кружочков
+
 export function addChangeIndicators(nodeGroups, changes, isTinyTree) {
     if (!changes) return;
     
-    // Добавление меток "NEW" для новых узлов с улучшенной видимостью
+    // Новые узлы - только зеленая метка "NEW"
     nodeGroups.filter(d => {
         const nodeId = d.data.id || getNodeIdentifier(d);
         return changes.newNodes && changes.newNodes.includes(nodeId);
@@ -139,32 +201,29 @@ export function addChangeIndicators(nodeGroups, changes, isTinyTree) {
         const circle = node.select('circle');
         const radius = parseFloat(circle.attr('r'));
         
-        // Добавляем фон для лучшей видимости текста
-        const newLabelBg = node.append('rect')
+        // Простая зеленая метка "NEW"
+        const labelBg = node.append('rect')
             .attr('x', radius + 3)
             .attr('y', -9)
             .attr('width', 36)
             .attr('height', 18)
             .attr('rx', 4)
-            .attr('fill', '#388e3c')  // Темно-зеленый фон
+            .attr('fill', '#388e3c')
             .attr('opacity', 0.9);
         
-        // Добавляем более крупный текст с контуром
         node.append('text')
             .attr('class', 'new-node-label')
-            .attr('x', radius + 21)  // Центрируем по фону
+            .attr('x', radius + 21)
             .attr('y', 0)
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'middle')
             .attr('font-size', isTinyTree ? 13 : 11)
             .attr('font-weight', 'bold')
-            .attr('fill', 'white')   // Белый текст
-            .attr('stroke', 'white')
-            .attr('stroke-width', 0.2) // Тонкий контур для лучшей читаемости
+            .attr('fill', 'white')
             .text('NEW');
     });
     
-    // Добавление индикаторов изменений для обновленных узлов
+    // Обновленные узлы - только синяя метка "+N"
     nodeGroups.filter(d => {
         const nodeId = d.data.id || getNodeIdentifier(d);
         return changes.updatedNodes && changes.updatedNodes.some(node => node.id === nodeId);
@@ -177,30 +236,33 @@ export function addChangeIndicators(nodeGroups, changes, isTinyTree) {
         const updatedNode = changes.updatedNodes.find(n => n.id === nodeId);
         if (!updatedNode) return;
         
-        // Добавляем контрастный фон для индикатора изменений
+        const labelWidth = updatedNode.change < 10 ? 26 : 34;
+        
+        // Синий фон для изменений
         const changeLabelBg = node.append('rect')
             .attr('x', radius + 3)
             .attr('y', -10)
-            .attr('width', updatedNode.change < 10 ? 26 : 34) // Регулируем ширину в зависимости от числа
+            .attr('width', labelWidth)
             .attr('height', 18)
             .attr('rx', 4)
-            .attr('fill', '#1976d2')  // Темно-синий фон
+            .attr('fill', '#1976d2')
             .attr('opacity', 0.9);
         
-        // Добавляем более контрастный текст
+        // Текст изменений
         node.append('text')
             .attr('class', 'change-label')
-            .attr('x', radius + (updatedNode.change < 10 ? 16 : 20)) // Центрируем на фоне
+            .attr('x', radius + labelWidth / 2)
             .attr('y', 0)
             .attr('text-anchor', 'middle')
             .attr('dominant-baseline', 'middle')
             .attr('font-size', isTinyTree ? 13 : 11)
             .attr('font-weight', 'bold')
-            .attr('fill', 'white')    // Белый текст
-            .attr('stroke', 'white') 
-            .attr('stroke-width', 0.2) // Тонкий контур для лучшей читаемости
+            .attr('fill', 'white')
             .text(`+${updatedNode.change}`);
     });
+    
+    // УБРАЛИ: Фиолетовые кружочки для playout узлов
+    // Теперь playout статус показывается только цветом границы и фоном узла
 }
 
 export function animateNewNodes(nodeGroups, changes) {

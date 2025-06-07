@@ -28,11 +28,11 @@ const SessionInputPage = () => {
                     setFilteredSessions(availableSessions);
                     setSelectedSession(availableSessions[0]); // Выбираем первый элемент по умолчанию
                 } else {
-                    setError('Не найдено доступных игровых сессий');
+                    setError('Не найдено доступных матчей');
                 }
             } catch (err) {
-                console.error('Ошибка загрузки сессий:', err);
-                setError(err.message || 'Не удалось загрузить доступные сессии');
+                console.error('Ошибка загрузки матчей:', err);
+                setError(err.message || 'Не удалось загрузить доступные матчи');
             } finally {
                 setIsLoading(false);
             }
@@ -63,7 +63,7 @@ const SessionInputPage = () => {
         e.preventDefault();
         
         if (!selectedSession) {
-            setError('Пожалуйста, выберите сессию');
+            setError('Пожалуйста, выберите матч');
             return;
         }
         
@@ -105,7 +105,7 @@ const SessionInputPage = () => {
                 {isLoading ? (
                     <div className="flex justify-center items-center">
                         <LoadingSpinner />
-                        <div className="ml-4">Загрузка доступных сессий...</div>
+                        <div className="ml-4">Загрузка доступных матчей...</div>
                     </div>
                 ) : error ? (
                     <ErrorMessage 
@@ -116,12 +116,12 @@ const SessionInputPage = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
                             <label htmlFor="sessionSearch" className="block text-sm font-medium text-gray-700 mb-2">
-                                Поиск сессии
+                                Поиск матчей
                             </label>
                             <input
                                 id="sessionSearch"
                                 type="text"
-                                placeholder="Введите часть ID сессии или название игры..."
+                                placeholder="Введите часть ID матча или название игры..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -130,12 +130,12 @@ const SessionInputPage = () => {
                         
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Доступные сессии ({filteredSessions.length})
+                                Доступные матчи ({filteredSessions.length})
                             </label>
                             
                             {filteredSessions.length === 0 ? (
                                 <div className="text-center p-4 border border-gray-200 rounded-md bg-gray-50">
-                                    Нет доступных сессий по запросу "{searchTerm}"
+                                    Нет доступных матчей по запросу "{searchTerm}"
                                 </div>
                             ) : (
                                 <div className="border border-gray-200 rounded-md max-h-64 overflow-y-auto">
@@ -172,8 +172,8 @@ const SessionInputPage = () => {
                         </Button>
                         
                         <div className="text-center text-sm text-gray-500 mt-4">
-                            Выберите игровую сессию из списка для визуализации роста дерева. 
-                            Поиск работает по названию игры и идентификатору сессии.
+                            Выберите матч из списка для визуализации роста дерева. 
+                            Поиск работает по названию игры и идентификатору матча.
                         </div>
                     </form>
                 )}

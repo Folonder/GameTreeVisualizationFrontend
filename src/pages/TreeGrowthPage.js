@@ -377,7 +377,7 @@ const TreeGrowthPage = () => {
     if (loading) {
         return (
             <div className="h-screen flex items-center justify-center bg-gray-50">
-                <LoadingIndicator message="Loading tree growth data..."/>
+                <LoadingIndicator message="Загрузка данных роста дерева"/>
             </div>
         );
     }
@@ -422,7 +422,7 @@ const TreeGrowthPage = () => {
                     </h1>
                     <StatusMessage
                         type="info"
-                        message={`Сессия: ${sessionId}`}
+                        message={`Матч: ${sessionId}`}
                         className="bg-blue-50 text-xs py-1 px-2"
                     />
                 </div>
@@ -440,7 +440,7 @@ const TreeGrowthPage = () => {
                         onClick={handleBackToGames}
                         variant="secondary"
                     >
-                        Назад к выбору сессий
+                        Назад к выбору матчей
                     </Button>
                 </div>
             </div>
@@ -487,7 +487,7 @@ const TreeGrowthPage = () => {
 
                         <div className="flex items-center space-x-3">
                             <div className="text-xs text-gray-600">
-                                Ход {currentStep.turnNumber + 1}: Шаг {currentStep.stepIndex + 1}
+                                Ход {currentStep.turnNumber + 1}: Шаг {currentStep.stepIndex}
                             </div>
 
                             <div className="flex items-center space-x-2">
@@ -621,7 +621,7 @@ const TreeGrowthPage = () => {
                             <div>
                                 <span className="font-medium">Всего узлов:</span> {calculateNodeCount(currentStep.tree)}
                                 {' | '}
-                                <span className="font-medium">Шаг:</span> {currentFlatIndex + 1} из {totalFlatSteps}
+                                <span className="font-medium">Шаг:</span> {currentFlatIndex} из {totalFlatSteps - 1}
                             </div>
                         </div>
                     </div>

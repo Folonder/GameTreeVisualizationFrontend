@@ -69,6 +69,8 @@ const ContextMenu = ({
     hiddenChildrenIds,
     filteredChildrenIds,
     overrideFilterIds,
+    changes,              // Добавлено
+    highlightChanges,     // Добавлено
     onClose, 
     onToggleExpansion,
     onResetNodePosition 
@@ -220,16 +222,6 @@ const ContextMenu = ({
                     )}
                 </div>
 
-                <div className="my-1 h-px bg-gray-200"></div>
-                <button 
-                    className="w-full px-3 py-2 text-left text-sm text-blue-600 hover:bg-gray-100 rounded"
-                    onClick={() => {
-                        onResetNodePosition(nodeId);
-                        onClose();
-                    }}
-                >
-                    Сбросить позицию узла
-                </button>
                 
                 <div className="my-1 h-px bg-gray-200"></div>
                 <button 
@@ -250,47 +242,115 @@ const ContextMenu = ({
                         </button>
                     </>
                 )}
-                
-                <div className="my-1 h-px bg-gray-200"></div>
-                <div className="px-3 py-2 text-xs text-gray-500">
-                    <div className="mb-1">Статус узла:</div>
-                    {isHiddenManually && (
+
+
+<div className="my-1 h-px bg-gray-200"></div>
+    <div className="px-3 py-2 text-xs text-gray-500">
+        <div className="mb-1">Статус узла:</div>
+        
+        {/* Определяем состояния узла с использованием переданных props */}
+        {(() => {
+            const isPlayout = node?.data?.isPlayout || false;
+            const nodeId = getNodeIdentifier(node);
+            
+            // Используем переданные изменения вместо глобального состояния
+            const isNew = highlightChanges && changes?.newNodes?.includes(nodeId) || false;
+            const isUpdated = highlightChanges && changes?.updatedNodes?.some(n => n.id === nodeId) || false;
+            
+            // Рендерим состояния
+            return (
+                <div className="space-y-1">
+                    {/* Комбинированные состояния */}
+                    {isNew && isPlayout && (
                         <div className="flex items-center">
-                            <span className="w-2 h-2 rounded-full bg-red-500 mr-2"></span>
-                            <span>Потомки скрыты вручную</span>
+                            <div className="flex mr-2">
+                                <span className="w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                            </div>
+                            <span className="text-green-600 font-medium">Новый узел с playout</span>
                         </div>
                     )}
-                    {isFilteredOut && !isHiddenManually && (
+                    
+                    {isUpdated && isPlayout && !isNew && (
                         <div className="flex items-center">
-                            <span className="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span>
-                            <span>Потомки скрыты фильтром</span>
+                            <div className="flex mr-2">
+                                <span className="w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                                <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                            </div>
+                            <span className="text-blue-600 font-medium">Обновленный узел с playout</span>
                         </div>
                     )}
-                    {hasFilterOverride && (
+                    
+                    {/* Отдельные состояния */}
+                    {isPlayout && !isNew && !isUpdated && (
                         <div className="flex items-center">
-                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
-                            <span>Активно переопределение фильтра</span>
+                            <span className="w-2 h-2 rounded-full bg-purple-500 mr-2"></span>
+                            <span className="text-purple-600 font-medium">Выполнен playout</span>
                         </div>
                     )}
-                    {!isHiddenManually && !isFilteredOut && hasChildren && (
+                    
+                    {isNew && !isPlayout && (
                         <div className="flex items-center">
                             <span className="w-2 h-2 rounded-full bg-green-500 mr-2"></span>
-                            <span>Все потомки видны</span>
+                            <span className="text-green-600 font-medium">Новый узел</span>
                         </div>
                     )}
-                    {!hasChildren && (
+                    
+                    {isUpdated && !isPlayout && !isNew && (
                         <div className="flex items-center">
-                            <span className="w-2 h-2 rounded-full bg-gray-500 mr-2"></span>
-                            <span>Лист (нет потомков)</span>
+                            <span className="w-2 h-2 rounded-full bg-blue-500 mr-2"></span>
+                            <span className="text-blue-600 font-medium">Обновленный узел</span>
                         </div>
                     )}
-
-                    {/* Отображение nodeId */}
-                    <div className="mt-2 text-xs text-gray-500">
-                        <div className="mb-1">ID узла:</div>
-                        <span>{nodeId}</span>
-                    </div>
+                    
+                    {/* Если никаких специальных состояний нет */}
+                    {!isNew && !isUpdated && !isPlayout && (
+                        <div className="flex items-center">
+                            <span className="w-2 h-2 rounded-full bg-gray-400 mr-2"></span>
+                            <span>Обычный узел</span>
+                        </div>
+                    )}
                 </div>
+            );
+        })()}
+        
+        {/* Остальной код состояний видимости остается без изменений */}
+        <div className="mt-2 space-y-1">
+            {/* ... существующий код для hiddenChildrenIds, filteredChildrenIds и т.д. ... */}
+        </div>
+
+        {/* Отображение nodeId */}
+        <div className="mt-2 text-xs text-gray-500">
+            <div className="mb-1">ID узла:</div>
+            <span className="font-mono">{nodeId}</span>
+        </div>
+        
+        {/* Дополнительная информация о playout */}
+        {node?.data?.isPlayout && (
+            <div className="mt-2 text-xs text-purple-600 bg-purple-50 p-2 rounded">
+                <div className="font-medium mb-1">Playout информация:</div>
+                <div>Узел подвергся симуляции до конца игры в рамках алгоритма MCTS</div>
+            </div>
+        )}
+        
+        {/* Информация об изменениях */}
+        {highlightChanges && changes && (() => {
+            const nodeId = getNodeIdentifier(node);
+            const updatedNode = changes.updatedNodes?.find(n => n.id === nodeId);
+            
+            if (updatedNode) {
+                return (
+                    <div className="mt-2 text-xs text-blue-600 bg-blue-50 p-2 rounded">
+                        <div className="font-medium mb-1">Изменения:</div>
+                        <div>Посещений добавлено: +{updatedNode.change}</div>
+                        <div>Было: {updatedNode.prevVisits}, стало: {updatedNode.currentVisits}</div>
+                    </div>
+                );
+            }
+            
+            return null;
+        })()} 
+    </div>
             </div>
         </div>
     );

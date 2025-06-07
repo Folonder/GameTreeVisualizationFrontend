@@ -20,10 +20,10 @@ const HomePage = () => {
                 <div className="space-y-6">
                     <div className="p-6 bg-blue-50 rounded-lg border border-blue-100">
                         <h2 className="text-xl font-semibold text-blue-800 mb-4">
-                            Просмотр игровой сессии
+                            Просмотр матча
                         </h2>
                         <p className="text-gray-600 mb-6">
-                            Введите ID игровой сессии для визуализации роста дерева MCTS.
+                            Введите ID матча для визуализации роста дерева MCTS.
                             Вы сможете просмотреть шаги роста дерева и анализировать процесс принятия решений.
                         </p>
                         <Button
@@ -31,7 +31,7 @@ const HomePage = () => {
                             variant="primary"
                             className="w-full"
                         >
-                            Выбрать сессиию
+                            Выбрать матч
                         </Button>
                     </div>
 

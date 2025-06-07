@@ -73,15 +73,30 @@ export function applyCustomPositions(allNodes, customNodePositions) {
     });
 }
 
-export function renderLinks(container, visibleLinks) {
+export function renderLinks(container, visibleLinks, nodeCount = 50) {
+    // Рассчитываем адаптивную толщину связей
+    const baseStrokeWidth = TREE_CONSTANTS.STYLE.STROKE_WIDTH.LINK;
+    let adaptiveStrokeWidth = baseStrokeWidth;
+    
+    // Определяем размер дерева и соответствующий множитель
+    if (nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.TINY_TREE.NODE_COUNT) {
+        adaptiveStrokeWidth = baseStrokeWidth * TREE_CONSTANTS.ADAPTIVE_SCALING.LINK_SCALING.TINY_TREE_MULTIPLIER;
+    } else if (nodeCount < TREE_CONSTANTS.ADAPTIVE_SCALING.SMALL_TREE.NODE_COUNT) {
+        adaptiveStrokeWidth = baseStrokeWidth * TREE_CONSTANTS.ADAPTIVE_SCALING.LINK_SCALING.SMALL_TREE_MULTIPLIER;
+    } else if (nodeCount > 200) {
+        adaptiveStrokeWidth = baseStrokeWidth * TREE_CONSTANTS.ADAPTIVE_SCALING.LINK_SCALING.LARGE_TREE_MULTIPLIER;
+    }
+    
     return container.selectAll('path.link')
         .data(visibleLinks)
         .join('path')
         .attr('class', 'link')
         .attr('fill', 'none')
         .attr('stroke', TREE_CONSTANTS.COLORS.LINK)
-        .attr('stroke-width', TREE_CONSTANTS.STYLE.STROKE_WIDTH.LINK)
+        .attr('stroke-width', adaptiveStrokeWidth)
         .attr('stroke-opacity', TREE_CONSTANTS.STYLE.LINK_OPACITY)
+        .attr('stroke-linecap', 'round')  // Добавляем скругленные концы для лучшего вида
+        .attr('stroke-linejoin', 'round') // Добавляем скругленные соединения
         .attr('d', d3.linkHorizontal()
             .x(d => d.y)
             .y(d => d.x));
